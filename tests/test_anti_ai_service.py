@@ -89,7 +89,8 @@ class TestAntiAiRewrite:
         mock_session.get = AsyncMock(return_value=chapter)
 
         with patch("src.services.anti_ai_service.get_gateway") as mock_gw, \
-             patch("src.services.anti_ai_service.release_write_lock", new_callable=AsyncMock):
+             patch("src.services.anti_ai_service.release_write_lock", new_callable=AsyncMock), \
+             patch("src.services._chapter_guard.create_auto_version_snapshot", new_callable=AsyncMock, return_value=_make_version()):
             mock_gw_instance = MagicMock()
             mock_gw_instance.call = AsyncMock(
                 return_value={"content": _REWRITTEN_CONTENT}
@@ -130,7 +131,8 @@ class TestAntiAiRewrite:
             return {"content": _REWRITTEN_CONTENT}
 
         with patch("src.services.anti_ai_service.get_gateway") as mock_gw, \
-             patch("src.services.anti_ai_service.release_write_lock", new_callable=AsyncMock):
+             patch("src.services.anti_ai_service.release_write_lock", new_callable=AsyncMock), \
+             patch("src.services._chapter_guard.create_auto_version_snapshot", new_callable=AsyncMock, return_value=_make_version()):
             mock_gw_instance = MagicMock()
             mock_gw_instance.call = AsyncMock(side_effect=mock_call)
             mock_gw.return_value = mock_gw_instance
@@ -149,7 +151,8 @@ class TestAntiAiRewrite:
         mock_session.get = AsyncMock(return_value=chapter)
 
         with patch("src.services.anti_ai_service.get_gateway") as mock_gw, \
-             patch("src.services.anti_ai_service.release_write_lock", new_callable=AsyncMock):
+             patch("src.services.anti_ai_service.release_write_lock", new_callable=AsyncMock), \
+             patch("src.services._chapter_guard.create_auto_version_snapshot", new_callable=AsyncMock, return_value=_make_version()):
             mock_gw_instance = MagicMock()
             mock_gw_instance.call = AsyncMock(return_value={"content": _SHORT_CONTENT})
             mock_gw.return_value = mock_gw_instance
@@ -213,7 +216,8 @@ class TestAdoptRewrite:
 
         mock_session.get = AsyncMock(side_effect=mock_get)
 
-        with patch("src.services.anti_ai_service.get_gateway"):
+        with patch("src.services.anti_ai_service.get_gateway"), \
+             patch("src.services._chapter_guard.create_auto_version_snapshot", new_callable=AsyncMock, return_value=None):
             from src.services.anti_ai_service import AntiAiService
             service = AntiAiService(mock_session)
             result = await service.adopt_rewrite("rw-001")
@@ -272,7 +276,8 @@ class TestRollbackRewrite:
 
         mock_session.get = AsyncMock(side_effect=mock_get)
 
-        with patch("src.services.anti_ai_service.get_gateway"):
+        with patch("src.services.anti_ai_service.get_gateway"), \
+             patch("src.services._chapter_guard.create_auto_version_snapshot", new_callable=AsyncMock, return_value=None):
             from src.services.anti_ai_service import AntiAiService
             service = AntiAiService(mock_session)
             await service.rollback_rewrite("rw-001")
@@ -366,7 +371,8 @@ class TestRegressionNoAntiAi:
         mock_session.get = AsyncMock(return_value=chapter)
 
         with patch("src.services.anti_ai_service.get_gateway") as mock_gw, \
-             patch("src.services.anti_ai_service.release_write_lock", new_callable=AsyncMock):
+             patch("src.services.anti_ai_service.release_write_lock", new_callable=AsyncMock), \
+             patch("src.services._chapter_guard.create_auto_version_snapshot", new_callable=AsyncMock, return_value=_make_version()):
             mock_gw_instance = MagicMock()
             mock_gw_instance.call = AsyncMock(
                 return_value={"content": _REWRITTEN_CONTENT}
@@ -401,7 +407,8 @@ class TestRegressionNoAntiAi:
 
         mock_session.get = AsyncMock(side_effect=mock_get)
 
-        with patch("src.services.anti_ai_service.get_gateway"):
+        with patch("src.services.anti_ai_service.get_gateway"), \
+             patch("src.services._chapter_guard.create_auto_version_snapshot", new_callable=AsyncMock, return_value=None):
             from src.services.anti_ai_service import AntiAiService
             service = AntiAiService(mock_session)
 

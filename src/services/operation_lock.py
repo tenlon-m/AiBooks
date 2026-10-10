@@ -5,12 +5,12 @@ writing/fill/repair/iteration 互斥（都修改章节内容），summary 可与
 """
 from __future__ import annotations
 
-import asyncio
+import threading
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 _project_ops: dict[str, set[str]] = {}
-_lock = asyncio.Lock()
+_lock = threading.Lock()
 
 _ALLOWED_PARALLEL: set[tuple[str, str]] = {
     ("summary", "writing"),
@@ -30,15 +30,17 @@ def _has_conflict(project_id: str, operation: str) -> str | None:
 
 def get_running_op(project_id: str) -> str | None:
     """返回当前正在运行的操作类型，无则 None."""
-    ops = _project_ops.get(project_id)
-    if not ops:
-        return None
-    return ", ".join(sorted(ops))
+    with _lock:
+        ops = _project_ops.get(project_id)
+        if not ops:
+            return None
+        return ", ".join(sorted(ops))
 
 
 def is_project_busy(project_id: str) -> bool:
     """项目是否有互斥操作正在运行."""
-    return bool(_project_ops.get(project_id))
+    with _lock:
+        return bool(_project_ops.get(project_id))
 
 
 @asynccontextmanager
@@ -52,7 +54,7 @@ async def acquire_op(project_id: str, operation: str) -> AsyncGenerator[None, No
     - iteration 与 writing/fill/repair/summary 互斥
     - summary 与 fill/repair/iteration 互斥，但可与 writing 并行
     """
-    async with _lock:
+    with _lock:
         existing = _has_conflict(project_id, operation)
         if existing:
             raise ValueError(f"项目已有操作进行中（{existing}），无法启动 {operation}")
@@ -60,7 +62,7 @@ async def acquire_op(project_id: str, operation: str) -> AsyncGenerator[None, No
     try:
         yield
     finally:
-        async with _lock:
+        with _lock:
             ops = _project_ops.get(project_id)
             if ops:
                 ops.discard(operation)
@@ -70,11 +72,12 @@ async def acquire_op(project_id: str, operation: str) -> AsyncGenerator[None, No
 
 def release_op(project_id: str, operation: str) -> None:
     """显式释放操作锁（用于 SSE 流提前终止时清理）."""
-    ops = _project_ops.get(project_id)
-    if ops:
-        ops.discard(operation)
-        if not ops:
-            del _project_ops[project_id]
+    with _lock:
+        ops = _project_ops.get(project_id)
+        if ops:
+            ops.discard(operation)
+            if not ops:
+                del _project_ops[project_id]
 
 
 def try_set_op(project_id: str, operation: str) -> bool:
@@ -87,8 +90,9 @@ def try_set_op(project_id: str, operation: str) -> bool:
     - iteration 与 writing/fill/repair/summary 互斥
     - summary 与 fill/repair/iteration 互斥，但可与 writing 并行
     """
-    existing = _has_conflict(project_id, operation)
-    if existing:
-        return False
-    _project_ops.setdefault(project_id, set()).add(operation)
-    return True
+    with _lock:
+        existing = _has_conflict(project_id, operation)
+        if existing:
+            return False
+        _project_ops.setdefault(project_id, set()).add(operation)
+        return True

@@ -45,18 +45,18 @@ class AntiAiService:
 
         original_content = chapter.content
 
-        original_version = ChapterVersion(
-            version_id=str(uuid.uuid4()),
-            chapter_id=chapter_id,
-            version_type="auto",
-            name=f"anti-ai-original@{datetime.now(timezone.utc).isoformat(timespec='seconds')}",
-            content=original_content,
-            word_count=chapter.word_count,
-            created_at=datetime.now(timezone.utc),
-        )
-        self.session.add(original_version)
-        await self.session.flush()
-        original_version_id = original_version.version_id
+        from src.services._chapter_guard import create_auto_version_snapshot
+        snapshot = await create_auto_version_snapshot(self.session, chapter)
+        if snapshot is None:
+            latest_result = await self.session.execute(
+                select(ChapterVersion)
+                .where(ChapterVersion.chapter_id == chapter_id)
+                .order_by(ChapterVersion.created_at.desc())
+            )
+            snapshot = latest_result.scalars().first()
+        if not snapshot:
+            raise ValueError("无法创建或获取版本快照")
+        original_version_id = snapshot.version_id
 
         await release_write_lock(self.session)
 
@@ -141,16 +141,8 @@ class AntiAiService:
         if not chapter:
             raise ValueError("章节不存在")
 
-        snapshot = ChapterVersion(
-            version_id=str(uuid.uuid4()),
-            chapter_id=chapter.chapter_id,
-            version_type="auto",
-            name=f"anti-ai-before-adopt@{datetime.now(timezone.utc).isoformat(timespec='seconds')}",
-            content=chapter.content or "",
-            word_count=chapter.word_count,
-            created_at=datetime.now(timezone.utc),
-        )
-        self.session.add(snapshot)
+        from src.services._chapter_guard import create_auto_version_snapshot
+        await create_auto_version_snapshot(self.session, chapter)
 
         now = datetime.now(timezone.utc)
         chapter.content = record.rewritten_content
@@ -194,16 +186,8 @@ class AntiAiService:
         if not chapter:
             raise ValueError("章节不存在")
 
-        rollback_snapshot = ChapterVersion(
-            version_id=str(uuid.uuid4()),
-            chapter_id=chapter.chapter_id,
-            version_type="auto",
-            name=f"anti-ai-rollback@{datetime.now(timezone.utc).isoformat(timespec='seconds')}",
-            content=chapter.content or "",
-            word_count=chapter.word_count,
-            created_at=datetime.now(timezone.utc),
-        )
-        self.session.add(rollback_snapshot)
+        from src.services._chapter_guard import create_auto_version_snapshot
+        await create_auto_version_snapshot(self.session, chapter)
 
         now = datetime.now(timezone.utc)
         chapter.content = original_version.content

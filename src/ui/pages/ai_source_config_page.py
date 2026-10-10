@@ -422,6 +422,9 @@ class AiSourceConfigPage(QWidget):
         form.addRow("权重：", self.weight_spin)
         config_layout.addLayout(form)
 
+        self._config_container.setVisible(False)
+        layout.addWidget(self._config_container)
+
         btn_layout = QHBoxLayout()
         self.add_btn = QPushButton("添加AI源")
         apply_theme_variant(self.add_btn, "success")
@@ -441,10 +444,7 @@ class AiSourceConfigPage(QWidget):
         btn_layout.addWidget(self.test_btn)
         btn_layout.addWidget(self.delete_btn)
         btn_layout.addWidget(self.refresh_btn)
-        config_layout.addLayout(btn_layout)
-
-        self._config_container.setVisible(False)
-        layout.addWidget(self._config_container)
+        layout.addLayout(btn_layout)
 
         layout.addWidget(QLabel("AI源列表："))
         self.table = QTableWidget(0, 10)

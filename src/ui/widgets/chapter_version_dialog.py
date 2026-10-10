@@ -180,7 +180,7 @@ class ChapterVersionDialog(QDialog):
                 row, 0, QTableWidgetItem(type_map.get(v.get("version_type", ""), "其他"))
             )
             self._version_table.setItem(
-                row, 1, QTableWidgetItem(v.get("version_name", ""))
+                row, 1, QTableWidgetItem(v.get("name") or ""))
             )
             self._version_table.setItem(
                 row, 2, QTableWidgetItem(str(v.get("word_count", 0)))
@@ -229,7 +229,7 @@ class ChapterVersionDialog(QDialog):
         worker.start()
 
     def _on_diff_loaded(self, data: dict) -> None:
-        html = data.get("diff_html", "")
+        html = data.get("html_diff", "")
         if not html:
             # 后端未返回 HTML 時用純文本兜底
             before = data.get("before", "")
@@ -251,7 +251,7 @@ class ChapterVersionDialog(QDialog):
         self._status_label.setText("标记中...")
         self._mark_btn.setEnabled(False)
         client = get_api_client()
-        payload = {"version_name": name} if name else {}
+        payload = {"name": name} if name else {}
         worker = ApiWorker(
             client.post,
             f"/api/chapters/versions/{self._chapter_id}/mark",

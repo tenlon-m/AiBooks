@@ -45,13 +45,19 @@ async def mark_manual_version(
 
 @router.get("/versions/diff", response_model=VersionDiffResponse)
 async def diff_versions(
-    version_id_a: str = Query(..., alias="version_id_a"),
-    version_id_b: str = Query(..., alias="version_id_b"),
+    version_id_a: str | None = Query(None, alias="version_id_a"),
+    version_id_b: str | None = Query(None, alias="version_id_b"),
+    chapter_id: str | None = Query(None, alias="chapter_id"),
+    version_id: str | None = Query(None, alias="version_id"),
     session: AsyncSession = Depends(get_session),
 ):
     service = ChapterVersionService(session)
     try:
-        return await service.diff(version_id_a, version_id_b)
+        if chapter_id and version_id:
+            return await service.diff_with_current(chapter_id, version_id)
+        if version_id_a and version_id_b:
+            return await service.diff(version_id_a, version_id_b)
+        raise ValueError("需要提供 version_id_a+version_id_b 或 chapter_id+version_id 参数")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:

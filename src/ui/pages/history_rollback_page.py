@@ -218,20 +218,14 @@ class HistoryRollbackPage(QWidget):
         msg = data.get("message", "")
         if success:
             self.status_label.setText("回滚成功")
-            revalidation = data.get("revalidation")
-            if revalidation:
-                items = revalidation.get("items", [])
-                all_pass = revalidation.get("all_pass", False)
-                if all_pass:
-                    QMessageBox.information(self, "回滚成功", "回滚成功，再校验全部通过")
-                else:
-                    lines = ["回滚成功，但再校验发现问题："]
-                    for item in items:
-                        if item.get("result") == "fail":
-                            lines.append(f"  [{item.get('check_type', '')}] {item.get('problem_desc', '')}")
-                    QMessageBox.warning(self, "校验结果", "\n".join(lines))
-            else:
-                QMessageBox.information(self, "成功", "回滚成功")
+            QMessageBox.information(self, "成功", msg or "回滚成功")
+            if self._current_chapter_id:
+                client = get_api_client()
+                worker = ApiWorker(client.get, f"/api/chapters/{self._current_chapter_id}/history")
+                worker.result.connect(self._on_history_loaded)
+                worker.error.connect(self._on_error)
+                self._add_worker(worker)
+                worker.start()
         else:
             self.status_label.setText(f"回滚失败：{msg}")
             QMessageBox.warning(self, "失败", msg)

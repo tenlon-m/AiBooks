@@ -65,10 +65,24 @@ class ValidationReportPage(QWidget):
         return len(self._workers) > 0 or self._repair_sse_worker is not None
 
     def _check_no_running_op(self) -> bool:
-        """检查是否有操作正在运行，有则弹窗提示并返回 False."""
+        """检查本地和后端是否有操作正在运行."""
         if self.is_busy():
             QMessageBox.warning(self, "提示", "已有操作进行中，请等待完成后再启动新操作")
             return False
+        pid = self._get_project_id()
+        if pid:
+            try:
+                client = get_api_client()
+                status = client.get(f"/api/writing/{pid}/op_status")
+                if status.get("is_busy"):
+                    op = status.get("running_op", "未知")
+                    QMessageBox.warning(
+                        self, "提示",
+                        f"项目正在执行{op}操作，请等待完成后再启动新操作",
+                    )
+                    return False
+            except Exception:
+                pass
         return True
 
     def _mark_unsaved(self) -> None:

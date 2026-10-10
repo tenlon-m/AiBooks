@@ -410,14 +410,14 @@ class WritingService:
                             f"第{chapter.volume_no}卷第{chapter.chapter_no}章重试后字数达标: {word_count}/{expected}"
                         )
 
+                from src.services._chapter_guard import create_auto_version_snapshot
+                await create_auto_version_snapshot(self.session, chapter)
+
                 chapter.content = content
                 chapter.word_count = word_count
                 chapter.gen_status = "completed"
                 chapter.modify_status = "none"
                 chapter.last_modified_at = datetime.now(timezone.utc)
-
-                from src.services._chapter_guard import create_auto_version_snapshot
-                await create_auto_version_snapshot(self.session, chapter)
 
                 item_service = ItemService(self.session)
                 await item_service.extract_and_save(project_id, content, chapter.volume_no, chapter.chapter_no)

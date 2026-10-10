@@ -101,6 +101,30 @@ class ChapterVersionService:
             html_diff=html,
         )
 
+    async def diff_with_current(self, chapter_id: str, version_id: str) -> VersionDiffResponse:
+        """比较指定版本与章节当前内容的差异."""
+        version = await self.session.get(ChapterVersion, version_id)
+        if not version:
+            raise ValueError(f"版本不存在: {version_id}")
+        chapter = await self.session.get(Chapter, chapter_id)
+        if not chapter:
+            raise ValueError("章节不存在")
+
+        lines_a = (version.content or "").splitlines(keepends=True)
+        lines_b = (chapter.content or "").splitlines(keepends=True)
+        differ = difflib.HtmlDiff(wrapcolumn=80)
+        html = differ.make_table(
+            lines_a, lines_b,
+            fromdesc="选中版本",
+            todesc="当前内容",
+            context=True,
+        )
+        return VersionDiffResponse(
+            version_id_a=version_id,
+            version_id_b="current",
+            html_diff=html,
+        )
+
     async def rollback(self, version_id: str) -> VersionRollbackResponse:
         version = await self.session.get(ChapterVersion, version_id)
         if not version:
@@ -120,21 +144,12 @@ class ChapterVersionService:
         chapter.modify_status = "rolled_back"
         chapter.last_modified_at = now
 
-        new_snapshot = ChapterVersion(
-            version_id=str(uuid.uuid4()),
-            chapter_id=chapter.chapter_id,
-            version_type="auto",
-            name=f"rollback@{now.isoformat(timespec='seconds')}",
-            content=version.content,
-            word_count=version.word_count,
-            created_at=now,
-        )
-        self.session.add(new_snapshot)
         await self.session.commit()
 
         return VersionRollbackResponse(
             chapter_id=chapter.chapter_id,
-            new_version_id=new_snapshot.version_id,
+            new_version_id=version_id,
+            word_count=version.word_count,
             success=True,
             message="回滚成功",
         )

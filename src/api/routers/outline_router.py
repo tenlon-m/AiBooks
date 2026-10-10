@@ -19,6 +19,7 @@ from src.api.schemas.outline_schema import (
     OutlineSaveRequest,
 )
 from src.db.session import get_session, session_scope
+from src.services.operation_lock import get_running_op, release_op, try_set_op
 from src.services.outline_service import OutlineService
 from src.utils.logger import get_logger
 
@@ -150,6 +151,10 @@ async def fill_appearing(
 async def repair_outline_stream(project_id: str, req: OutlineRepairRequest):
     """大纲 AI 一键修复 - SSE 流式，逐章串行，可暂停续写."""
     async def event_stream():
+        if not try_set_op(project_id, "repair"):
+            existing = get_running_op(project_id) or "未知"
+            yield f"data: {json.dumps({'type': 'error', 'message': f'项目已有操作进行中（{existing}），无法启动大纲修复'})}\n\n"
+            return
         async with session_scope() as session:
             service = OutlineService(session)
             try:
@@ -162,6 +167,8 @@ async def repair_outline_stream(project_id: str, req: OutlineRepairRequest):
                 await session.rollback()
                 logger.error(f"SSE outline/repair/stream 异常: {e}", exc_info=True)
                 yield f"data: {json.dumps({'type': 'error', 'message': f'异常: {e}'})}\n\n"
+            finally:
+                release_op(project_id, "repair")
 
     return StreamingResponse(
         event_stream(),

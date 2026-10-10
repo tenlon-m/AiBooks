@@ -29,6 +29,7 @@ class VersionDiffResponse(BaseModel):
 class VersionRollbackResponse(BaseModel):
     chapter_id: str
     new_version_id: str
+    word_count: int
     success: bool
     message: str
 

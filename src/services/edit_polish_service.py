@@ -395,8 +395,13 @@ class EditPolishService:
 
         content_before = chapter.content
         now = datetime.now(timezone.utc)
+
+        from src.services._chapter_guard import create_auto_version_snapshot
+        await create_auto_version_snapshot(self.session, chapter)
+
         chapter.content = target_content
         chapter.word_count = len(target_content)
+        chapter.modify_status = "rolled_back"
         chapter.last_modified_at = now
 
         rollback_record = ModifyRecord(
