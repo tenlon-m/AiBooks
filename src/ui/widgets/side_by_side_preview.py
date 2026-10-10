@@ -40,6 +40,9 @@ class SideBySidePreview(QWidget):
         self.right_editor.setStyleSheet("background-color: #f1f8e9; border: 1px solid #ddd;")
         splitter.addWidget(self.left_editor)
         splitter.addWidget(self.right_editor)
+        splitter.setChildrenCollapsible(False)
+        self.left_editor.setMinimumWidth(200)
+        self.right_editor.setMinimumWidth(200)
         splitter.setSizes([500, 500])
         layout.addWidget(splitter, 1)
 

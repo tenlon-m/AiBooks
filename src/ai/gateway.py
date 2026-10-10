@@ -322,6 +322,40 @@ class AiGateway:
         return result
 
     @staticmethod
+    def _escape_in_string_values(text: str) -> str:
+        """转义 JSON 字符串值中的字面控制字符（换行/制表/回车）.
+
+        AI 模型常在 JSON 字符串值中返回字面换行符（而非 ``\\n`` 转义），
+        这违反 JSON 规范导致 ``json.loads`` 失败。本方法逐字符扫描，
+        追踪是否处于字符串值内部，将字面控制字符转义为 JSON 转义序列。
+        """
+        result: list[str] = []
+        in_string = False
+        escaped = False
+        for ch in text:
+            if escaped:
+                result.append(ch)
+                escaped = False
+                continue
+            if ch == "\\":
+                result.append(ch)
+                escaped = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+                result.append(ch)
+                continue
+            if in_string and ch == "\n":
+                result.append("\\n")
+            elif in_string and ch == "\r":
+                result.append("\\r")
+            elif in_string and ch == "\t":
+                result.append("\\t")
+            else:
+                result.append(ch)
+        return "".join(result)
+
+    @staticmethod
     def _extract_json(text: str) -> dict[str, Any] | None:
         """从文本中提取 JSON（支持 ```json 代码块包裹及截断修复）."""
         if not text:
@@ -337,6 +371,7 @@ class AiGateway:
             if lines and lines[-1].startswith("```"):
                 lines = lines[:-1]
             text = "\n".join(lines).strip()
+        text = AiGateway._escape_in_string_values(text)
         try:
             return json.loads(text)
         except json.JSONDecodeError:
@@ -401,13 +436,14 @@ class AiGateway:
 
         # 2) 常规截断：末尾是半截字符串/数组/对象，尝试补闭合
         for repair in [
+            lambda s: s + '"}',
+            lambda s: s + '"\n}',
             lambda s: s + '"}]}',
             lambda s: s + '"}]',
             lambda s: s + ']}',
             lambda s: s + '}',
             lambda s: s + '"',
             lambda s: s + '"]}',
-            lambda s: s + '"\n}',
             lambda s: s + '"\n}\n',
             lambda s: s + '"}}]}',
             lambda s: s + '"}}]}}',
@@ -427,28 +463,42 @@ class AiGateway:
                 except json.JSONDecodeError:
                     continue
 
-        # 3) content 正文中途截断：提取 "content": " 之后的正文（去掉未闭合引号）
-        content_slug = re.search(r'"content"\s*:\s*"([\s\S]*)', fragment)
+        # 3) content/content_new 正文中途截断：提取 "content": " 之后的正文（去掉未闭合引号）
+        content_slug = re.search(r'"(?:content|content_new)"\s*:\s*"([\s\S]*)', fragment)
         if content_slug:
             raw_content = content_slug.group(1)
             # 去掉末尾可能残留的未闭合引号 / 换行 / 空白
             raw_content = raw_content.rstrip('"\r\n\t ')
             if raw_content.strip():
+                # 反转义 JSON 转义序列（\n → 换行等），与 json.loads 行为一致
+                try:
+                    raw_content = json.loads('"' + raw_content + '"')
+                except json.JSONDecodeError:
+                    raw_content = raw_content.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t").replace('\\"', '"').replace("\\\\", "\\")
                 title_match = re.search(r'"title"\s*:\s*"(.*?)"', fragment, re.DOTALL)
-                return {"title": title_match.group(1) if title_match else "", "content": raw_content}
+                result = {"title": title_match.group(1) if title_match else "", "content": raw_content}
+                if "content_new" in fragment:
+                    result["content_new"] = raw_content
+                return result
 
         # 4) 兜底：按 key 提取已闭合的字符串字段
-        for key in ["content", "title", "intro", "summary"]:
+        for key in ["content", "content_new", "synopsis_points_new", "title", "intro", "summary"]:
             val_match = re.search(rf'"{key}"\s*:\s*"(.*?)"', fragment, re.DOTALL)
             if val_match:
                 result = {}
                 result[key] = val_match.group(1)
+                if key in ("content", "content_new"):
+                    if key == "content_new":
+                        result["content"] = result[key]
+                    else:
+                        result["content_new"] = result[key]
                 title_match = re.search(r'"title"\s*:\s*"(.*?)"', fragment, re.DOTALL)
                 if title_match and key != "title":
                     result["title"] = title_match.group(1)
-                content_match = re.search(r'"content"\s*:\s*"(.*?)"', fragment, re.DOTALL)
-                if content_match and key != "content":
+                content_match = re.search(r'"(?:content|content_new)"\s*:\s*"(.*?)"', fragment, re.DOTALL)
+                if content_match and key not in ("content", "content_new"):
                     result["content"] = content_match.group(1)
+                    result["content_new"] = content_match.group(1)
                 if len(result) > 0:
                     return result
         return None
@@ -469,6 +519,13 @@ class AiGateway:
         summary_match = re.search(r'"summary"\s*:\s*"(.*?)"', text, re.DOTALL)
         if summary_match:
             result["summary"] = summary_match.group(1)
+        content_match = re.search(r'"(?:content|content_new)"\s*:\s*"(.*?)"', text, re.DOTALL)
+        if content_match:
+            result["content"] = content_match.group(1)
+            result["content_new"] = content_match.group(1)
+        synopsis_match = re.search(r'"synopsis_points_new"\s*:\s*"(.*?)"', text, re.DOTALL)
+        if synopsis_match:
+            result["synopsis_points_new"] = synopsis_match.group(1)
         if result:
             return result
         return None

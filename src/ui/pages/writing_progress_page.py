@@ -358,6 +358,10 @@ class WritingProgressPage(QWidget):
         log_layout.addWidget(self.log_edit)
         self._splitter.addWidget(log_container)
 
+        self._splitter.setChildrenCollapsible(False)
+        self.table.setMinimumHeight(120)
+        preview_container.setMinimumHeight(80)
+        log_container.setMinimumHeight(60)
         self._splitter.setSizes([300, 300, 200])
         layout.addWidget(self._splitter, 1)
 
@@ -441,6 +445,9 @@ class WritingProgressPage(QWidget):
             try:
                 sizes = [int(s) for s in splitter_sizes]
                 if len(sizes) == 3 and all(s > 0 for s in sizes):
+                    sizes[0] = max(sizes[0], 120)
+                    sizes[1] = max(sizes[1], 80)
+                    sizes[2] = max(sizes[2], 60)
                     self._splitter.setSizes(sizes)
             except (TypeError, ValueError):
                 pass
