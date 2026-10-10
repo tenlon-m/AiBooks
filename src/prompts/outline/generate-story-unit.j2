@@ -1,0 +1,68 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：雪花式分层大纲逐层生成
+
+### 故事梗概
+{{ synopsis }}
+
+### 世界观设定
+{{ worldview }}
+
+### 已确认人物清单
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）—— {{ ch.intro or "无简介" }}
+{% endfor %}
+
+{% if parent_unit %}
+### 父单元约束
+- 父单元名称：{{ parent_unit.unit_name }}
+- 父单元概要：{{ parent_unit.synopsis }}
+- 父单元叙事职责：{{ parent_unit.narrative_duty or "未指定" }}
+- 父单元规划章数：{{ parent_unit.chapter_count }}
+
+本次生成的所有子单元须在父单元概要范围内细化展开，不得偏离父单元叙事职责。
+{% endif %}
+
+### 当前生成层级
+{% if level_type == "volume" %}
+分卷层（全书最高层）：将全书梗概划分为若干卷，每卷承担一段完整的情节阶段。
+{% elif level_type == "major" %}
+大篇层：在父卷范围内划分大篇，每个大篇是一个完整的情节弧。
+{% elif level_type == "middle" %}
+中篇层：在父大篇范围内划分中篇，每个中篇是一个阶段性情节单元。
+{% elif level_type == "minor" %}
+小篇层：在父中篇范围内划分小篇，每个小篇对应数个具体章节。
+{% endif %}
+
+{% if narrative_duty %}
+### 叙事职责约束
+{{ narrative_duty }}
+{% endif %}
+
+{% if chapter_range %}
+### 章数区间约束
+每个子单元的 chapter_count 必须落在区间 [{{ chapter_range }}] 内。
+{% endif %}
+
+### 生成要求
+1. 根据父单元概要细化生成若干子单元
+2. 每个子单元须有 unit_name（1-50字）、synopsis（50-200字概要）、chapter_count（章数）、narrative_duty（叙事职责）
+3. 子单元概要须具体描述该单元的情节内容与核心事件
+4. 所有子单元的章数之和应与父单元规划章数相匹配
+5. 子单元之间情节连贯、层层递进
+
+### 输出格式
+```json
+{
+  "units": [
+    {
+      "unit_name": "单元名称",
+      "synopsis": "该单元故事概要（50-200字）",
+      "chapter_count": 30,
+      "narrative_duty": "该单元在全书中的叙事职责"
+    }
+  ]
+}
+```
+{% endblock %}

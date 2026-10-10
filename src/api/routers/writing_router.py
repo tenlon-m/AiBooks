@@ -69,7 +69,13 @@ async def resume_writing(project_id: str, user_ideas: str = "", session: AsyncSe
 
 
 @router.get("/{project_id}/progress")
-async def writing_progress(project_id: str, style_library_id: str | None = None, user_ideas: str = ""):
+async def writing_progress(
+    project_id: str,
+    style_library_id: str | None = None,
+    user_ideas: str = "",
+    proofread_mode: str = "off",
+    proofread_sources: str | None = None,
+):
     """SSE 流式推送撰写进度."""
     async def event_generator():
         from src.db.session import session_scope
@@ -81,7 +87,16 @@ async def writing_progress(project_id: str, style_library_id: str | None = None,
             service = WritingService(session)
             _writing_tasks[project_id] = service
             try:
-                async for event in service.start_writing(project_id, style_library_id, user_ideas=user_ideas):
+                sources: dict | None = None
+                if proofread_sources:
+                    try:
+                        sources = json.loads(proofread_sources)
+                    except json.JSONDecodeError:
+                        sources = None
+                async for event in service.start_writing(
+                    project_id, style_library_id, user_ideas=user_ideas,
+                    proofread_mode=proofread_mode, proofread_sources=sources,
+                ):
                     data = event.model_dump_json()
                     yield f"data: {data}\n\n"
             except ValueError as e:

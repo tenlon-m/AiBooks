@@ -34,13 +34,25 @@ class OutlineEditDialog(QDialog):
         synopsis: str = "",
         characters_appearing: str = "",
         chapter_id: str | None = None,
+        unit_name: str = "",
+        unit_synopsis: str = "",
+        narrative_duty: str = "",
+        chapter_count: int = 0,
     ) -> None:
         super().__init__(parent)
         self._edit_type = edit_type
         self._chapter_id = chapter_id
-        self.setWindowTitle("编辑卷名" if edit_type == "volume" else "编辑章节大纲")
+        self._synopsis_changed = False
+        if edit_type == "story_unit":
+            self.setWindowTitle("编辑故事单元")
+        elif edit_type == "volume":
+            self.setWindowTitle("编辑卷名")
+        else:
+            self.setWindowTitle("编辑章节大纲")
         self.setMinimumWidth(500)
         self._init_ui(volume_name, chapter_name, synopsis, characters_appearing)
+        if edit_type == "story_unit":
+            self._init_story_unit_ui(unit_name, unit_synopsis, narrative_duty, chapter_count)
 
     def _init_ui(
         self,
@@ -102,7 +114,50 @@ class OutlineEditDialog(QDialog):
             self._char_count_label.setText(f"{count}字（建议100-300字）")
             self._char_count_label.setStyleSheet("color: #ff9800;")
 
+    def _init_story_unit_ui(
+        self,
+        unit_name: str,
+        unit_synopsis: str,
+        narrative_duty: str,
+        chapter_count: int,
+    ) -> None:
+        layout = self.layout()
+        form = QFormLayout()
+
+        self._unit_name_edit = QLineEdit(unit_name)
+        self._unit_name_edit.setMaxLength(50)
+        form.addRow("单元名称：", self._unit_name_edit)
+
+        self._unit_synopsis_edit = QPlainTextEdit(unit_synopsis)
+        self._unit_synopsis_edit.setPlaceholderText("该单元叙事概要（建议50-200字）")
+        form.addRow("叙事概要：", self._unit_synopsis_edit)
+
+        self._narrative_duty_edit = QPlainTextEdit(narrative_duty)
+        self._narrative_duty_edit.setPlaceholderText("该单元在全书中的叙事职责")
+        form.addRow("叙事职责：", self._narrative_duty_edit)
+
+        self._chapter_count_label = QLabel(str(chapter_count))
+        form.addRow("章数范围：", self._chapter_count_label)
+
+        self._cascade_warn_label = QLabel("修改概要或叙事职责将触发级联标记，下层单元需重新生成")
+        self._cascade_warn_label.setStyleSheet("color: #ff9800; padding: 4px;")
+        form.addRow("", self._cascade_warn_label)
+
+        self._unit_synopsis_edit.textChanged.connect(self._on_unit_synopsis_changed)
+
+        layout.addLayout(form)
+
+    def _on_unit_synopsis_changed(self) -> None:
+        self._synopsis_changed = True
+
     def get_data(self) -> dict:
+        if self._edit_type == "story_unit":
+            return {
+                "unit_name": self._unit_name_edit.text().strip(),
+                "synopsis": self._unit_synopsis_edit.toPlainText().strip(),
+                "narrative_duty": self._narrative_duty_edit.toPlainText().strip(),
+                "synopsis_changed": self._synopsis_changed,
+            }
         if self._edit_type == "volume":
             return {"volume_name": self._volume_name_edit.text().strip()}
         scenes_changes = (

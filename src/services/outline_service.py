@@ -611,6 +611,20 @@ class OutlineService:
         ch = ch_result.scalars().first()
         return ch.synopsis_points if ch else None
 
+    async def generate_story_unit_layer(
+        self, project_id: str, parent_unit_id: str | None, level_type: str
+    ) -> list:
+        """雪花式分层大纲逐层生成，委托 StoryUnitService."""
+        from src.api.schemas.story_unit_schema import StoryUnitDto
+        from src.services.story_unit_service import StoryUnitService
+
+        service = StoryUnitService(self.session)
+        if parent_unit_id is None and level_type == "volume":
+            return await service.generate_volume_layer(project_id)
+        if parent_unit_id is None:
+            raise ValueError("非分卷层生成须指定父单元")
+        return await service.generate_layer(project_id, parent_unit_id, level_type)
+
     async def save_outline(
         self, project_id: str, req: OutlineSaveRequest
     ) -> OutlineDto:

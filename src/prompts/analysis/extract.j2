@@ -1,0 +1,41 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：批量提取{{ dimension }}相关内容
+
+请从以下章节正文中，提取与「{{ target_name }}」相关的所有片段，按章节汇总输出。
+
+### 项目ID
+{{ project_id }}
+
+### 提取维度
+{{ dimension }}
+
+### 目标名称
+{{ target_name }}
+
+### 章节正文
+{% for ch in chapters_content %}
+#### 第{{ ch.chapter_no }}章 {{ ch.title }}
+{{ ch.content }}
+
+{% endfor %}
+
+### 提取要求
+1. 仅提取与「{{ target_name }}」直接相关的段落或情节片段，无关内容不要纳入
+2. 每个 excerpt 保留足够上下文，使其脱离原文亦可独立理解
+3. 按章节顺序输出；无相关内容的章节直接省略，不要输出空 excerpt
+4. excerpt 必须为原文摘录，不得改写、概括或杜撰
+5. 若该{{ dimension }}在所有章节中均未出现，返回空 results 数组
+
+### 输出格式
+严格按如下 JSON 输出，不要附加任何说明文字：
+```json
+{
+  "results": [
+    {"chapter_no": 1, "excerpt": "与目标相关的原文摘录片段"},
+    {"chapter_no": 3, "excerpt": "与目标相关的原文摘录片段"}
+  ]
+}
+```
+{% endblock %}

@@ -113,8 +113,8 @@ class CharacterPage(QWidget):
         worldview_layout.addWidget(self._apply_template_btn)
         layout.addLayout(worldview_layout)
 
-        self.table = QTableWidget(0, 7)
-        self.table.setHorizontalHeaderLabels(["人物ID", "姓名", "身份", "简介", "关系", "状态", "来源"])
+        self.table = QTableWidget(0, 8)
+        self.table.setHorizontalHeaderLabels(["人物ID", "姓名", "身份", "简介", "关系", "状态", "来源", "作用域"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -205,6 +205,8 @@ class CharacterPage(QWidget):
             self._render_status_cell(row, confirmed)
             source_text = source_map.get(c.get("source", ""), c.get("source", ""))
             self.table.setItem(row, 6, QTableWidgetItem(source_text))
+            scope_text = c.get("scope_type") or "全书"
+            self.table.setItem(row, 7, QTableWidgetItem(scope_text))
         self.status_label.setText(f"共 {len(characters)} 个人物")
 
     def _render_status_cell(self, row: int, confirmed: bool) -> None:
@@ -357,6 +359,12 @@ class CharacterPage(QWidget):
         identity = self.identity_input.text().strip()
         if not name or not identity:
             QMessageBox.warning(self, "提示", "请输入姓名和身份")
+            return
+        existing_names = {
+            c.get("name", "") for c in getattr(self, "_characters_cache", [])
+        }
+        if name in existing_names:
+            QMessageBox.warning(self, "提示", f"人物「{name}」已存在，名字需全书唯一")
             return
         payload = {
             "project_id": pid,

@@ -15,6 +15,7 @@ from src.db.models import (
     ChapterOutline,
     Outline,
     Project,
+    StoryUnit,
     VolumeOutline,
 )
 from src.services.exporters import (
@@ -203,6 +204,69 @@ class ExportService:
         return await service.get_template_dict(template_id)
 
     async def _get_outline_text(self, project_id: str) -> str:
+        story_unit_text = await self._get_story_unit_outline_text(project_id)
+        if story_unit_text:
+            return story_unit_text
+        return await self._get_legacy_outline_text(project_id)
+
+    async def _get_story_unit_outline_text(self, project_id: str) -> str:
+        """分层大纲文本拼接：分卷→大篇→中篇→小篇→章纲."""
+        result = await self.session.execute(
+            select(StoryUnit)
+            .where(StoryUnit.project_id == project_id)
+            .order_by(StoryUnit.level_type, StoryUnit.unit_no)
+        )
+        units = list(result.scalars().all())
+        if not units:
+            return ""
+
+        unit_map: dict[str | None, list[StoryUnit]] = {}
+        for u in units:
+            unit_map.setdefault(u.parent_unit_id, []).append(u)
+
+        outline_result = await self.session.execute(
+            select(Outline).where(Outline.project_id == project_id)
+        )
+        outline = outline_result.scalars().first()
+
+        lines: list[str] = []
+        for vol in unit_map.get(None, []):
+            lines.append(f"【分卷】{vol.unit_name}")
+            lines.append(f"  概要：{vol.synopsis}")
+            for major in unit_map.get(vol.story_unit_id, []):
+                lines.append(f"  【大篇】{major.unit_name}（{major.chapter_count}章）")
+                lines.append(f"    概要：{major.synopsis}")
+                for middle in unit_map.get(major.story_unit_id, []):
+                    lines.append(f"    【中篇】{middle.unit_name}（{middle.chapter_count}章）")
+                    lines.append(f"      概要：{middle.synopsis}")
+                    for minor in unit_map.get(middle.story_unit_id, []):
+                        lines.append(f"      【小篇】{minor.unit_name}（{minor.chapter_count}章）")
+                        lines.append(f"        概要：{minor.synopsis}")
+                        ch_lines = await self._get_chapter_lines_by_unit(
+                            minor.story_unit_id, outline
+                        )
+                        lines.extend(ch_lines)
+        return "\n".join(lines)
+
+    async def _get_chapter_lines_by_unit(
+        self, story_unit_id: str, outline: Outline | None
+    ) -> list[str]:
+        """查询关联某小篇单元的章纲文本行."""
+        if outline is None:
+            return []
+        ch_result = await self.session.execute(
+            select(ChapterOutline).where(
+                ChapterOutline.story_unit_id == story_unit_id
+            ).order_by(ChapterOutline.chapter_no)
+        )
+        lines: list[str] = []
+        for ch in ch_result.scalars().all():
+            lines.append(f"        第{ch.chapter_no}章 {ch.chapter_name}")
+            lines.append(f"          {ch.synopsis_points}")
+        return lines
+
+    async def _get_legacy_outline_text(self, project_id: str) -> str:
+        """旧工程两级大纲文本拼接（卷→章）."""
         result = await self.session.execute(
             select(Outline).where(Outline.project_id == project_id)
         )

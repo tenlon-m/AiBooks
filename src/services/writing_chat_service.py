@@ -111,7 +111,6 @@ class WritingChatService:
         chapter = ctx["chapter"]
         history = await self._load_history(chapter_id)
 
-        await self._save_message(chapter_id, "user", message, context_mode)
         await release_write_lock(self.session)
 
         result = await self.gateway.call_and_parse(
@@ -143,7 +142,23 @@ class WritingChatService:
         if len(content) < min_len:
             raise ValueError(f"AI回复内容不足{min_len}字")
 
-        await self._save_message(chapter_id, "assistant", content, context_mode)
+        user_entity = WritingChatHistory(
+            chat_id=str(uuid.uuid4()),
+            chapter_id=chapter_id,
+            role="user",
+            content=message,
+            context_mode=context_mode,
+        )
+        assistant_entity = WritingChatHistory(
+            chat_id=str(uuid.uuid4()),
+            chapter_id=chapter_id,
+            role="assistant",
+            content=content,
+            context_mode=context_mode,
+        )
+        self.session.add(user_entity)
+        self.session.add(assistant_entity)
+        await self.session.commit()
 
         return WritingChatResponse(
             content=content,

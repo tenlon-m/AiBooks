@@ -46,6 +46,9 @@ from src.ui.pages.item_page import ItemPage
 from src.ui.pages.word_stats_page import WordStatsPage
 from src.ui.pages.sensitive_word_page import SensitiveWordPage
 from src.ui.pages.app_log_page import AppLogPage
+from src.ui.pages.anti_ai_page import AntiAiPage
+from src.ui.pages.book_teardown_page import BookTeardownPage
+from src.ui.pages.script_page import ScriptPage
 from src.ui.project_context import get_project_context
 from src.ui.shortcut_manager import ShortcutManager
 from src.ui.usage_guide import UsageGuideDialog
@@ -132,6 +135,9 @@ class MainWindow(QMainWindow):
         self._add_page("sensitive", "敏感词检测", SensitiveWordPage())
         self._add_page("items", "物品管理", ItemPage())
         self._add_page("app_logs", "应用日志", AppLogPage())
+        self._add_page("anti_ai", "降AI率改写", AntiAiPage())
+        self._add_page("book_teardown", "一键拆书", BookTeardownPage())
+        self._add_page("script", "AI写剧本", ScriptPage())
 
         manager_page = self.pages["manager"]
         manager_page.request_open_project.connect(self._on_manager_open_project)
@@ -223,6 +229,20 @@ class MainWindow(QMainWindow):
         for title, key in aux_pages:
             action = QAction(title, self, triggered=lambda checked, k=key: self._switch_page(k))
             aux_toolbar.addAction(action)
+            self._toolbar_actions[key] = action
+
+        self.addToolBarBreak()
+        ext_toolbar = QToolBar("扩展工具")
+        ext_toolbar.setMovable(False)
+        self.addToolBar(ext_toolbar)
+        self.ext_toolbar = ext_toolbar
+
+        ext_pages = [
+            ("降AI率改写", "anti_ai"), ("一键拆书", "book_teardown"), ("AI写剧本", "script"),
+        ]
+        for title, key in ext_pages:
+            action = QAction(title, self, triggered=lambda checked, k=key: self._switch_page(k))
+            ext_toolbar.addAction(action)
             self._toolbar_actions[key] = action
 
     def _init_statusbar(self) -> None:

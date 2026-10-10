@@ -24,6 +24,7 @@ class ItemService:
         self.session = session
         self.logger = get_logger()
         self.gateway = get_gateway()
+        self.config = get_config()
 
     def _to_dto(self, item: Item) -> ItemDto:
         return ItemDto(
@@ -61,6 +62,7 @@ class ItemService:
                     "existing_items": [i.model_dump() for i in existing],
                 },
                 project_id=project_id,
+                timeout_seconds=self.config.item_extract_timeout_seconds,
             )
             items_data = result.get("parsed", {}).get("items", [])
         except Exception as e:

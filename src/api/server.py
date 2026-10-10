@@ -109,6 +109,13 @@ _ROUTER_SPECS: list[tuple[str, str, str]] = [
     ("chapter_version_router", "/api/chapters", "章节版本管理"),
     ("annotation_router", "/api/chapters/annotations", "章节批注"),
     ("item_router", "/api/items", "物品管理"),
+    ("anti_ai_router", "/api/anti-ai", "降AI率改写"),
+    ("batch_edit_router", "/api/batch-edit", "批量提取/改写"),
+    ("book_teardown_router", "/api/book-teardown", "一键拆书"),
+    ("iteration_router", "/api/iteration", "迭代生成"),
+    ("script_router", "/api/script", "AI写剧本"),
+    ("proofread_router", "/api/proofread", "多AI纠错"),
+    ("story_unit_router", "/api/story-units", "故事单元"),
 ]
 
 

@@ -14,7 +14,7 @@ from src.api.schemas.character_schema import (
     CharacterDto,
     CharacterUpdateRequest,
 )
-from src.db.models import Character
+from src.db.models import Character, StoryUnit
 from src.utils.logger import get_logger
 
 
@@ -111,6 +111,8 @@ class CharacterService:
             supporting_type=ch.supporting_type,
             auto_gen_context=ch.auto_gen_context,
             future_reference=ch.future_reference,
+            scope_type=ch.scope_type or "全书",
+            scope_unit_id=ch.scope_unit_id,
         )
 
     async def ai_extract_main(self, project_id: str, synopsis: str, worldview: str) -> list[CharacterDto]:
@@ -194,6 +196,7 @@ class CharacterService:
             relation=relation,
             source=source,
             confirmed=False,
+            scope_type="全书",
         )
         self.session.add(ch)
         await self.session.flush()
@@ -312,3 +315,80 @@ class CharacterService:
                 confirmed_count += 1
         await self.session.commit()
         return confirmed_count
+    async def list_by_scope(
+        self, project_id: str, scope_type: str, scope_unit_id: str | None
+    ) -> list[CharacterDto]:
+        """按作用域下钻查询可用角色：全书角色 + 父单元链上角色 + 本单元角色，合并去重."""
+        if scope_type == "全书":
+            return await self.list_confirmed(project_id)
+
+        if not scope_unit_id:
+            raise ValueError("非全书作用域必须指定作用域单元")
+
+        unit = await self.session.get(StoryUnit, scope_unit_id)
+        if not unit or unit.project_id != project_id:
+            raise ValueError("作用域单元不存在")
+
+        ancestor_ids: set[str] = {scope_unit_id}
+        current = unit
+        while current.parent_unit_id is not None:
+            parent = await self.session.get(StoryUnit, current.parent_unit_id)
+            if parent is None:
+                break
+            ancestor_ids.add(parent.story_unit_id)
+            current = parent
+
+        result = await self.session.execute(
+            select(Character).where(
+                Character.project_id == project_id,
+                Character.confirmed == True,
+            )
+        )
+        all_chars = list(result.scalars().all())
+
+        seen: set[str] = set()
+        available: list[CharacterDto] = []
+        for ch in all_chars:
+            if ch.character_id in seen:
+                continue
+            ch_scope = ch.scope_type or "全书"
+            if ch_scope == "全书":
+                seen.add(ch.character_id)
+                available.append(self._to_dto(ch))
+            elif ch.scope_unit_id is not None and ch.scope_unit_id in ancestor_ids:
+                seen.add(ch.character_id)
+                available.append(self._to_dto(ch))
+        return available
+
+    async def update_scope(
+        self, character_id: str, scope_type: str, scope_unit_id: str | None
+    ) -> CharacterDto:
+        """更新作用域；主角不可设为单元级；非全书时 scope_unit_id 必须指向存在的 StoryUnit."""
+        ch = await self.session.get(Character, character_id)
+        if not ch:
+            raise ValueError(f"人物不存在: {character_id}")
+
+        if "主角" in (ch.identity or "") and scope_type != "全书":
+            raise ValueError("主角必须全书可见，不可设为单元级作用域")
+
+        if scope_type != "全书":
+            if not scope_unit_id:
+                raise ValueError("非全书作用域必须指定作用域单元")
+            unit = await self.session.get(StoryUnit, scope_unit_id)
+            if not unit or unit.project_id != ch.project_id:
+                raise ValueError("作用域单元不存在")
+
+        ch.scope_type = scope_type
+        ch.scope_unit_id = scope_unit_id if scope_type != "全书" else None
+        await self.session.flush()
+        return self._to_dto(ch)
+
+    async def check_name_unique(self, project_id: str, name: str) -> bool:
+        """校验名字全书唯一性，返回 True 表示唯一可用."""
+        result = await self.session.execute(
+            select(Character).where(
+                Character.project_id == project_id,
+                Character.name == name,
+            )
+        )
+        return result.scalars().first() is None

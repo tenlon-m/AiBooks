@@ -19,6 +19,8 @@ class CharacterDto(BaseModel):
     supporting_type: str | None = None
     auto_gen_context: str | None = None
     future_reference: bool | None = None
+    scope_type: str | None = None
+    scope_unit_id: str | None = None
 
 
 class CharacterCreateRequest(BaseModel):
@@ -36,6 +38,11 @@ class CharacterUpdateRequest(BaseModel):
     intro: str | None = None
     relation: str | None = None
     confirmed: bool | None = None
+
+
+class UpdateScopeRequest(BaseModel):
+    scope_type: str
+    scope_unit_id: str | None = None
 
 
 class AiExtractCharactersRequest(BaseModel):

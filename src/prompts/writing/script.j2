@@ -1,0 +1,34 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：撰写第{{ episode_no }}集剧本
+
+### 多级大纲（分集结构对应大纲层级，必须遵循）
+{% for unit in outline_units %}
+- 第{{ unit.volume_no }}卷《{{ unit.volume_name | default("") }}》第{{ unit.chapter_no }}章《{{ unit.chapter_name | default("") }}》
+  梗概要点：{{ unit.synopsis_points }}
+  {% if unit.characters_appearing %}出场人物：{{ unit.characters_appearing }}{% endif %}
+{% endfor %}
+
+### 人物设定（必须保持一致）
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）：{{ ch.intro | default("") }}
+  关系：{{ ch.relation | default("无") }}
+{% endfor %}
+
+### 撰写要求
+1. 基于上述多级大纲，为第{{ episode_no }}集撰写剧本
+2. 当前集对应大纲中第{{ episode_no }}个章节单元，需围绕该章节梗概要点展开
+3. 场景描述需详细描绘环境、氛围、人物动作与情节推进
+4. 角色对白需符合各人物性格与关系，自然流畅
+5. 场景描述与角色对白各自不少于50字
+6. 内容承接前文，情节连贯
+
+### 输出格式
+```json
+{
+  "scene_description": "场景描述内容",
+  "character_dialogue": "角色对白内容"
+}
+```
+{% endblock %}

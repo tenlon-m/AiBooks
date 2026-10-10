@@ -187,7 +187,7 @@ class ValidationService:
         content_characters = await self._extract_content_characters(project_id, chapters, characters)
         content_character_count = len(content_characters)
         confirmed_character_count = len(characters)
-        if content_character_count > confirmed_character_count:
+        if content_character_count >= confirmed_character_count:
             result = "pass"
             problem_desc = None
         else:
@@ -239,6 +239,7 @@ class ValidationService:
                 params=params,
                 project_id=project_id,
                 max_tokens=8192,
+                timeout_seconds=get_config().validation_full_book_timeout,
             )
             parsed = result.get("parsed", {})
             items_data = parsed.get("items", [])

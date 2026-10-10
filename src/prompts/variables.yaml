@@ -431,6 +431,188 @@ scenes:
       default: ""
       description: 已有故事梗概（约束世界观方向）
 
+  writing.chat:
+    chapter_id:
+      type: str
+      required: true
+      description: 章节ID
+    question:
+      type: str
+      required: true
+      description: 用户提问内容
+    context_mode:
+      type: str
+      required: true
+      description: 上下文模式
+
+  emotion.analyze:
+    project_id:
+      type: str
+      required: true
+      description: 项目ID
+
+  naming.generate:
+    project_id:
+      type: str
+      required: true
+      description: 项目ID
+    name_type:
+      type: str
+      required: true
+      description: 命名类型
+    count:
+      type: int
+      required: true
+      description: 生成数量
+
+  writing.continue:
+    content:
+      type: str
+      required: true
+      description: 续写起始内容
+
+  writing.expand:
+    content:
+      type: str
+      required: true
+      description: 待扩写内容
+
+  writing.shrink:
+    content:
+      type: str
+      required: true
+      description: 待缩写内容
+
+  writing.connection:
+    prev_chapter:
+      type: str
+      required: true
+      description: 上一章内容
+    next_chapter:
+      type: str
+      required: true
+      description: 下一章内容
+
+  summary.chapter:
+    chapter_content:
+      type: str
+      required: true
+      description: 章节正文内容
+
+  writing.iterate:
+    input_content:
+      type: str
+      required: true
+      description: 输入内容
+    round_no:
+      type: int
+      required: true
+      description: 当前轮次
+    total_rounds:
+      type: int
+      required: true
+      description: 总轮数
+
+  writing.script:
+    outline_units:
+      type: list
+      required: true
+      description: 大纲单元列表
+    characters:
+      type: list
+      required: true
+      description: 人物清单
+    episode_no:
+      type: int
+      required: true
+      description: 集号
+
+  writing.proofread:
+    input_content:
+      type: str
+      required: true
+      description: 输入内容
+    proofread_stage:
+      type: str
+      required: true
+      description: 纠错阶段
+    previous_draft:
+      type: str
+      required: true
+      description: 上一稿内容
+
+  writing.evaluate:
+    content:
+      type: str
+      required: true
+      description: 待评估内容
+    evaluation_criteria:
+      type: str
+      required: true
+      description: 评估标准
+
+  rewrite.anti-ai:
+    original_content:
+      type: str
+      required: true
+      description: 原始内容
+    strategy:
+      type: str
+      required: true
+      description: 改写策略
+
+  rewrite.batch:
+    original_content:
+      type: str
+      required: true
+      description: 原始内容
+    instruction:
+      type: str
+      required: true
+      description: 改写指令
+
+  analysis.extract:
+    project_id:
+      type: str
+      required: true
+      description: 项目ID
+    dimension:
+      type: str
+      required: true
+      description: 提取维度
+    target_name:
+      type: str
+      required: true
+      description: 目标名称
+
+  analysis.book-teardown:
+    parsed_content:
+      type: str
+      required: true
+      description: 已解析内容
+    teardown_phase:
+      type: str
+      required: true
+      description: 拆书阶段
+
+  outline.generate-story-unit:
+    synopsis:
+      type: str
+      required: true
+      description: 故事梗概
+    worldview:
+      type: str
+      required: true
+      description: 世界观设定
+    characters:
+      type: list
+      required: true
+      description: 人物清单
+    level_type:
+      type: str
+      required: true
+      description: 大纲层级类型
+
 source_type_overrides:
   local_ollama:
     max_tokens: 2048

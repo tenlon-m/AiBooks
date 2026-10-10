@@ -55,7 +55,7 @@ class ChapterMergeService:
                 if curr_order[1] != prev_order[1] + 1:
                     raise ValueError("章节不相邻，无法合并")
             elif curr_order[0] == prev_order[0] + 1:
-                if curr_order[1] != 1 or prev_order[1] != 1:
+                if curr_order[1] != 1:
                     raise ValueError("跨卷合并仅支持卷末+卷首")
             else:
                 raise ValueError("章节不相邻，无法合并")

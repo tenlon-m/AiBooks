@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QFormLayout,
     QHBoxLayout,
@@ -17,6 +18,8 @@ from PySide6.QtWidgets import (
 
 from src.ui.api_client import get_api_client
 from src.ui.api_worker import ApiWorker
+
+_SCOPE_TYPES = ["全书", "某卷", "某大篇", "某中篇"]
 
 
 class CharacterEditDialog(QDialog):
@@ -33,10 +36,12 @@ class CharacterEditDialog(QDialog):
         self._character_data = character_data
         self._character_id: str = character_data.get("character_id", "")
         self._workers: list[ApiWorker] = []
+        self._scope_units: list[dict] = []
         self.setWindowTitle("编辑人物")
         self.setMinimumWidth(520)
         self._init_ui()
         self._fill_fields()
+        self._load_scope_units()
 
     def _init_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -65,6 +70,15 @@ class CharacterEditDialog(QDialog):
         self.relation_edit.setFixedHeight(100)
         form.addRow("关系：", self.relation_edit)
 
+        self.scope_type_combo = QComboBox()
+        self.scope_type_combo.addItems(_SCOPE_TYPES)
+        self.scope_type_combo.currentTextChanged.connect(self._on_scope_type_changed)
+        form.addRow("作用域类型：", self.scope_type_combo)
+
+        self.scope_unit_combo = QComboBox()
+        self.scope_unit_combo.setEnabled(False)
+        form.addRow("作用域单元：", self.scope_unit_combo)
+
         layout.addLayout(form)
 
         btn_layout = QHBoxLayout()
@@ -83,6 +97,49 @@ class CharacterEditDialog(QDialog):
         self.identity_input.setText(self._character_data.get("identity", ""))
         self.intro_edit.setPlainText(self._character_data.get("intro", "") or "")
         self.relation_edit.setPlainText(self._character_data.get("relation", "") or "")
+        scope_type = self._character_data.get("scope_type") or "全书"
+        if scope_type in _SCOPE_TYPES:
+            self.scope_type_combo.setCurrentText(scope_type)
+        self._pending_scope_unit_id = self._character_data.get("scope_unit_id")
+
+    def _load_scope_units(self) -> None:
+        project_id = self._character_data.get("project_id")
+        if not project_id:
+            return
+        client = get_api_client()
+        worker = ApiWorker(client.get, f"/api/story-units/tree/{project_id}")
+        worker.result.connect(self._on_scope_units_loaded)
+        worker.error.connect(lambda _msg: None)
+        self._workers.append(worker)
+        worker.start()
+
+    def _on_scope_units_loaded(self, data: dict) -> None:
+        units = (data or {}).get("units", []) if isinstance(data, dict) else []
+        self._scope_units = units if isinstance(units, list) else []
+        self._refresh_scope_unit_combo()
+        if getattr(self, "_pending_scope_unit_id", None):
+            idx = self.scope_unit_combo.findData(self._pending_scope_unit_id)
+            if idx >= 0:
+                self.scope_unit_combo.setCurrentIndex(idx)
+            self._pending_scope_unit_id = None
+
+    def _on_scope_type_changed(self, text: str) -> None:
+        self.scope_unit_combo.setEnabled(text != "全书")
+        self._refresh_scope_unit_combo()
+
+    def _refresh_scope_unit_combo(self) -> None:
+        scope_type = self.scope_type_combo.currentText()
+        self.scope_unit_combo.clear()
+        if scope_type == "全书":
+            return
+        level_map = {"某卷": "volume", "某大篇": "major", "某中篇": "middle"}
+        target_level = level_map.get(scope_type)
+        for u in self._scope_units:
+            if u.get("level_type") == target_level:
+                self.scope_unit_combo.addItem(
+                    u.get("unit_name", ""),
+                    u.get("story_unit_id"),
+                )
 
     def _save(self) -> None:
         name = self.name_input.text().strip()
@@ -104,13 +161,39 @@ class CharacterEditDialog(QDialog):
         }
         client = get_api_client()
         worker = ApiWorker(client.put, f"/api/characters/{self._character_id}", json=payload)
-        worker.result.connect(self._on_saved)
+        worker.result.connect(lambda _d: self._save_scope())
         worker.error.connect(self._on_error)
         self._workers.append(worker)
         worker.start()
         self.save_btn.setEnabled(False)
 
+    def _save_scope(self) -> None:
+        scope_type = self.scope_type_combo.currentText()
+        scope_unit_id = None
+        if scope_type != "全书":
+            scope_unit_id = self.scope_unit_combo.currentData()
+            if not scope_unit_id:
+                self.save_btn.setEnabled(True)
+                self.saved.emit(self._character_id)
+                self.accept()
+                return
+        client = get_api_client()
+        worker = ApiWorker(
+            client.put,
+            f"/api/characters/{self._character_id}/scope",
+            json={"scope_type": scope_type, "scope_unit_id": scope_unit_id},
+        )
+        worker.result.connect(self._on_saved)
+        worker.error.connect(self._on_scope_error)
+        self._workers.append(worker)
+        worker.start()
+
     def _on_saved(self, data: dict) -> None:
+        self.save_btn.setEnabled(True)
+        self.saved.emit(self._character_id)
+        self.accept()
+
+    def _on_scope_error(self, msg: str) -> None:
         self.save_btn.setEnabled(True)
         self.saved.emit(self._character_id)
         self.accept()

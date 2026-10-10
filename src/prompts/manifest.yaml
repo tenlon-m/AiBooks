@@ -191,6 +191,13 @@ templates:
     description: 章节独立一致性校验
     file: chapter/check-consistency.j2
 
+  - module: chapter
+    scene: merge-title
+    version: 1.0.0
+    enabled: true
+    description: 章节合并后AI生成新标题
+    file: chapter/merge-title.j2
+
   - module: validation
     scene: full-book
     version: 1.0.0
@@ -313,3 +320,65 @@ templates:
     enabled: true
     description: 世界观设定AI润色（扩展简单思路为完整世界观）
     file: creation/polish-worldview.j2
+  - module: rewrite
+    scene: anti-ai
+    version: 1.0.0
+    enabled: true
+    description: 降AI率改写（针对朱雀等检测器，句式变换/同义替换/口语化）
+    file: rewrite/anti-ai.j2
+
+  - module: analysis
+    scene: extract
+    version: 1.0.0
+    enabled: true
+    description: 批量提取某角色/某地点相关内容
+    file: analysis/extract.j2
+
+  - module: rewrite
+    scene: batch
+    version: 1.0.0
+    enabled: true
+    description: 批量改写/扩写
+    file: rewrite/batch.j2
+
+  - module: analysis
+    scene: book-teardown
+    version: 1.0.0
+    enabled: true
+    description: 一键拆书（多级大纲拆解+要素提取）
+    file: analysis/book-teardown.j2
+
+  - module: writing
+    scene: iterate
+    version: 1.0.0
+    enabled: true
+    description: 迭代生成（基于上一轮输出渐进改进）
+    file: writing/iterate.j2
+
+  - module: writing
+    scene: script
+    version: 1.0.0
+    enabled: true
+    description: AI写剧本（基于大纲生成分集剧本/对白）
+    file: writing/script.j2
+
+  - module: writing
+    scene: proofread
+    version: 1.0.0
+    enabled: true
+    description: AB稿/ABC稿接力纠错
+    file: writing/proofread.j2
+
+  - module: writing
+    scene: evaluate
+    version: 1.0.0
+    enabled: true
+    description: 稿件质量评估（多维度打分+总评）
+    file: writing/evaluate.j2
+
+  - module: outline
+    scene: generate-story-unit
+    version: 1.0.0
+    enabled: true
+    description: 雪花式分层大纲逐层生成
+    file: outline/generate-story-unit.j2

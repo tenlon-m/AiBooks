@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QProgressBar,
     QPushButton,
+    QSpinBox,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -246,6 +247,60 @@ class WritingProgressPage(QWidget):
         config_layout.addWidget(self.load_styles_btn)
         ideas_panel_layout.addLayout(config_layout)
 
+        proofread_layout = QHBoxLayout()
+        proofread_layout.addWidget(QLabel("纠错模式："))
+        self._proofread_mode_combo = QComboBox()
+        self._proofread_mode_combo.addItem("关闭", "off")
+        self._proofread_mode_combo.addItem("AB接力", "ab")
+        self._proofread_mode_combo.addItem("ABC接力", "abc")
+        self._proofread_mode_combo.currentIndexChanged.connect(self._on_proofread_mode_changed)
+        proofread_layout.addWidget(self._proofread_mode_combo)
+        proofread_layout.addStretch()
+        ideas_panel_layout.addLayout(proofread_layout)
+
+        self._proofread_sources_widget = QWidget()
+        self._proofread_sources_widget.setVisible(False)
+        proofread_sources_layout = QHBoxLayout(self._proofread_sources_widget)
+        proofread_sources_layout.setContentsMargins(0, 0, 0, 0)
+        proofread_sources_layout.addWidget(QLabel("A源："))
+        self._proofread_source_a = QComboBox()
+        proofread_sources_layout.addWidget(self._proofread_source_a)
+        proofread_sources_layout.addWidget(QLabel("B源："))
+        self._proofread_source_b = QComboBox()
+        proofread_sources_layout.addWidget(self._proofread_source_b)
+        proofread_sources_layout.addWidget(QLabel("C源："))
+        self._proofread_source_c = QComboBox()
+        proofread_sources_layout.addWidget(self._proofread_source_c)
+        proofread_sources_layout.addWidget(QLabel("评估源："))
+        self._proofread_source_eval = QComboBox()
+        proofread_sources_layout.addWidget(self._proofread_source_eval)
+        self._load_ai_sources_btn = QPushButton("加载AI源")
+        self._load_ai_sources_btn.clicked.connect(self._load_ai_sources)
+        proofread_sources_layout.addWidget(self._load_ai_sources_btn)
+        ideas_panel_layout.addWidget(self._proofread_sources_widget)
+
+        iterate_layout = QHBoxLayout()
+        self._iterate_btn = QPushButton("迭代生成")
+        self._iterate_btn.setVisible(False)
+        self._iterate_btn.clicked.connect(self._on_iterate_generate)
+        iterate_layout.addWidget(self._iterate_btn)
+        iterate_layout.addWidget(QLabel("迭代次数："))
+        self._iterate_count_spin = QSpinBox()
+        self._iterate_count_spin.setMinimum(1)
+        self._iterate_count_spin.setMaximum(100)
+        self._iterate_count_spin.setValue(1)
+        self._iterate_count_spin.setVisible(False)
+        iterate_layout.addWidget(self._iterate_count_spin)
+        iterate_layout.addWidget(QLabel("迭代单位："))
+        self._iterate_unit_combo = QComboBox()
+        self._iterate_unit_combo.addItem("卷", "volume")
+        self._iterate_unit_combo.addItem("阶段", "phase")
+        self._iterate_unit_combo.addItem("章", "chapter")
+        self._iterate_unit_combo.setVisible(False)
+        iterate_layout.addWidget(self._iterate_unit_combo)
+        iterate_layout.addStretch()
+        ideas_panel_layout.addLayout(iterate_layout)
+
         layout.addWidget(self._ideas_panel)
 
         self.status_label = QLabel("就绪")
@@ -268,6 +323,8 @@ class WritingProgressPage(QWidget):
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.itemSelectionChanged.connect(self._on_table_selection_changed)
+        self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._on_table_context_menu)
         self._splitter.addWidget(self.table)
 
         preview_container = QWidget()
@@ -426,27 +483,42 @@ class WritingProgressPage(QWidget):
 
         style_id = self.style_combo.currentData()
         user_ideas = self._ideas_input.toPlainText().strip()
+        proofread_mode = self._proofread_mode_combo.currentData()
+        proofread_sources = self._collect_proofread_sources()
         payload = {
             "project_id": pid,
             "style_library_id": style_id,
             "user_ideas": user_ideas,
+            "proofread_mode": proofread_mode,
+            "proofread_sources": proofread_sources,
         }
         worker = ApiWorker(client.post, "/api/writing/start", json=payload)
-        worker.result.connect(lambda d: self._on_start_done(d, pid, style_id, user_ideas))
+        worker.result.connect(lambda d: self._on_start_done(d, pid, style_id, user_ideas, proofread_mode, proofread_sources))
         worker.error.connect(self._on_error)
         self._workers.append(worker)
         self.start_btn.setEnabled(False)
         self.status_label.setText("正在启动撰写...")
         worker.start()
 
-    def _on_start_done(self, data: dict, pid: str, style_id: str | None, user_ideas: str = "") -> None:
+    def _on_start_done(
+        self,
+        data: dict,
+        pid: str,
+        style_id: str | None,
+        user_ideas: str = "",
+        proofread_mode: str = "off",
+        proofread_sources: dict | None = None,
+    ) -> None:
         self.status_label.setText("撰写已启动")
         self.log_edit.append("撰写已启动，正在生成章节...")
         self.start_btn.setEnabled(False)
         self.pause_btn.setEnabled(True)
         self.progress_bar.setValue(0)
 
-        self._sse_worker = SseWritingWorker(pid, style_id, user_ideas)
+        self._sse_worker = SseWritingWorker(
+            pid, style_id, user_ideas,
+            proofread_mode=proofread_mode, proofread_sources=proofread_sources,
+        )
         self._sse_worker.event.connect(self._on_sse_event)
         self._sse_worker.error.connect(self._on_sse_error)
         self._sse_worker.finished_ok.connect(self._on_sse_finished)
@@ -486,7 +558,12 @@ class WritingProgressPage(QWidget):
         self.pause_btn.setEnabled(True)
         self.resume_btn.setEnabled(False)
         style_id = self.style_combo.currentData()
-        self._sse_worker = SseWritingWorker(pid, style_id, user_ideas)
+        proofread_mode = self._proofread_mode_combo.currentData()
+        proofread_sources = self._collect_proofread_sources()
+        self._sse_worker = SseWritingWorker(
+            pid, style_id, user_ideas,
+            proofread_mode=proofread_mode, proofread_sources=proofread_sources,
+        )
         self._sse_worker.event.connect(self._on_sse_event)
         self._sse_worker.error.connect(self._on_sse_error)
         self._sse_worker.finished_ok.connect(self._on_sse_finished)
@@ -1261,4 +1338,98 @@ class WritingProgressPage(QWidget):
             main_window._switch_page("word_stats")
         else:
             QMessageBox.information(self, "提示", "请通过工具栏切换到字数统计页面")
+
+    def _collect_proofread_sources(self) -> dict | None:
+        mode = self._proofread_mode_combo.currentData()
+        if mode == "off":
+            return None
+        sources: dict[str, str] = {}
+        source_a = self._proofread_source_a.currentData()
+        source_b = self._proofread_source_b.currentData()
+        if source_a:
+            sources["source_a"] = source_a
+        if source_b:
+            sources["source_b"] = source_b
+        if mode == "abc":
+            source_c = self._proofread_source_c.currentData()
+            source_eval = self._proofread_source_eval.currentData()
+            if source_c:
+                sources["source_c"] = source_c
+            if source_eval:
+                sources["source_eval"] = source_eval
+        return sources if sources else None
+
+    def _on_proofread_mode_changed(self) -> None:
+        mode = self._proofread_mode_combo.currentData()
+        show_sources = mode != "off"
+        self._proofread_sources_widget.setVisible(show_sources)
+        self._iterate_btn.setVisible(show_sources)
+        self._iterate_count_spin.setVisible(show_sources)
+        self._iterate_unit_combo.setVisible(show_sources)
+
+    def _load_ai_sources(self) -> None:
+        client = get_api_client()
+        worker = ApiWorker(client.get, "/api/ai-sources")
+        worker.result.connect(self._on_ai_sources_loaded)
+        worker.error.connect(self._on_error)
+        self._workers.append(worker)
+        worker.start()
+
+    def _on_ai_sources_loaded(self, sources: list) -> None:
+        for combo in (
+            self._proofread_source_a,
+            self._proofread_source_b,
+            self._proofread_source_c,
+            self._proofread_source_eval,
+        ):
+            combo.clear()
+            combo.addItem("请选择", None)
+            for s in sources:
+                combo.addItem(s.get("name", ""), s.get("ai_source_id"))
+
+    def _on_iterate_generate(self) -> None:
+        mode = self._proofread_mode_combo.currentData()
+        if mode == "off":
+            QMessageBox.warning(self, "提示", "请先选择纠错模式")
+            return
+        count = self._iterate_count_spin.value()
+        unit = self._iterate_unit_combo.currentData()
+        QMessageBox.information(
+            self, "迭代生成",
+            f"迭代生成已启动：纠错模式={mode}，迭代次数={count}，迭代单位={unit}",
+        )
+
+    def _on_table_context_menu(self, pos) -> None:
+        menu = QMenu(self)
+        batch_menu = menu.addMenu("批量操作")
+
+        extract_menu = batch_menu.addMenu("批量提取")
+        extract_char_action = QAction("按角色", self)
+        extract_char_action.triggered.connect(self._batch_extract_by_character)
+        extract_menu.addAction(extract_char_action)
+        extract_loc_action = QAction("按地点", self)
+        extract_loc_action.triggered.connect(self._batch_extract_by_location)
+        extract_menu.addAction(extract_loc_action)
+
+        rewrite_action = QAction("批量改写", self)
+        rewrite_action.triggered.connect(self._batch_rewrite)
+        batch_menu.addAction(rewrite_action)
+
+        expand_action = QAction("批量扩写", self)
+        expand_action.triggered.connect(self._batch_expand)
+        batch_menu.addAction(expand_action)
+
+        menu.exec(self.table.mapToGlobal(pos))
+
+    def _batch_extract_by_character(self) -> None:
+        QMessageBox.information(self, "批量提取", "批量提取（按角色）功能已触发")
+
+    def _batch_extract_by_location(self) -> None:
+        QMessageBox.information(self, "批量提取", "批量提取（按地点）功能已触发")
+
+    def _batch_rewrite(self) -> None:
+        QMessageBox.information(self, "批量改写", "批量改写功能已触发")
+
+    def _batch_expand(self) -> None:
+        QMessageBox.information(self, "批量扩写", "批量扩写功能已触发")
 

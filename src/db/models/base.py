@@ -95,6 +95,8 @@ class Character(Base):
     supporting_type: Mapped[str | None] = mapped_column(String(20), nullable=True, default=None)
     auto_gen_context: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
     future_reference: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=None)
+    scope_type: Mapped[str | None] = mapped_column(String(10), nullable=True, default="全书")
+    scope_unit_id: Mapped[str | None] = mapped_column(String(36), nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
     project: Mapped["Project"] = relationship(back_populates="characters")
@@ -396,6 +398,7 @@ class ChapterOutline(Base):
     synopsis_points: Mapped[str] = mapped_column(Text, nullable=False)
     characters_appearing: Mapped[str | None] = mapped_column(Text, nullable=True)
     gen_source: Mapped[str] = mapped_column(String(20), nullable=False, default="AI生成")
+    story_unit_id: Mapped[str | None] = mapped_column(String(36), nullable=True, default=None)
 
     volume_outline: Mapped["VolumeOutline"] = relationship("VolumeOutline", back_populates="chapters")
 
@@ -606,6 +609,127 @@ class GarbledConfigModel(Base):
     )
 
 
+class StoryUnit(Base):
+    """故事单元 - 雪花式5级分层大纲的大篇/中篇/小篇三层（自引用树）."""
+
+    __tablename__ = "story_units"
+
+    story_unit_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False, index=True)
+    parent_unit_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("story_units.story_unit_id", ondelete="CASCADE"), nullable=True, index=True)
+    level_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    unit_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    unit_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    synopsis: Mapped[str] = mapped_column(Text, nullable=False)
+    chapter_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    gen_status: Mapped[str] = mapped_column(String(20), nullable=False, default="未生成")
+    narrative_duty: Mapped[str] = mapped_column(Text, nullable=False)
+    cascade_dirty: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+    __table_args__ = (
+        Index("ix_story_unit_project", "project_id"),
+        Index("ix_story_unit_parent", "parent_unit_id"),
+        UniqueConstraint("project_id", "parent_unit_id", "unit_no", name="uq_story_unit_no"),
+    )
+
+
+class AntiAiRewriteRecord(Base):
+    """降AI率改写记录."""
+
+    __tablename__ = "anti_ai_rewrite_records"
+
+    rewrite_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    chapter_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapters.chapter_id", ondelete="CASCADE"), nullable=False, index=True)
+    original_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False)
+    rewritten_content: Mapped[str] = mapped_column(Text, nullable=False)
+    strategy: Mapped[str] = mapped_column(String(50), nullable=False)
+    adopt_status: Mapped[str] = mapped_column(String(10), nullable=False, default="待采纳")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class BatchOperationRecord(Base):
+    """批量操作记录."""
+
+    __tablename__ = "batch_operation_records"
+
+    batch_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False, index=True)
+    operation_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    target_scope: Mapped[str] = mapped_column(Text, nullable=False)
+    batch_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    batch_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
+    process_status: Mapped[str] = mapped_column(String(10), nullable=False, default="处理中")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class BookTeardown(Base):
+    """拆书结果."""
+
+    __tablename__ = "book_teardowns"
+
+    teardown_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    source_file_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    file_format: Mapped[str] = mapped_column(String(10), nullable=False)
+    multi_level_outline: Mapped[str] = mapped_column(Text, nullable=False)
+    characters_extract: Mapped[str | None] = mapped_column(Text, nullable=True)
+    time_places: Mapped[str | None] = mapped_column(Text, nullable=True)
+    worldview_setting: Mapped[str | None] = mapped_column(Text, nullable=True)
+    special_items: Mapped[str | None] = mapped_column(Text, nullable=True)
+    event_points: Mapped[str | None] = mapped_column(Text, nullable=True)
+    teardown_status: Mapped[str] = mapped_column(String(10), nullable=False, default="处理中")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
+class IterationRecord(Base):
+    """迭代生成记录."""
+
+    __tablename__ = "iteration_records"
+
+    iteration_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False, index=True)
+    iteration_unit: Mapped[str] = mapped_column(String(10), nullable=False)
+    target_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    round_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_rounds: Mapped[int] = mapped_column(Integer, nullable=False)
+    input_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False)
+    output_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False)
+    iteration_status: Mapped[str] = mapped_column(String(10), nullable=False, default="进行中")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class Script(Base):
+    """剧本分集."""
+
+    __tablename__ = "scripts"
+
+    script_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False, index=True)
+    episode_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    scene_description: Mapped[str] = mapped_column(Text, nullable=False)
+    character_dialogue: Mapped[str] = mapped_column(Text, nullable=False)
+    outline_unit_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("story_units.story_unit_id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class ProofreadDraft(Base):
+    """AB稿/ABC稿纠错稿件."""
+
+    __tablename__ = "proofread_drafts"
+
+    draft_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    chapter_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapters.chapter_id", ondelete="CASCADE"), nullable=False, index=True)
+    draft_stage: Mapped[str] = mapped_column(String(10), nullable=False)
+    ai_source_id: Mapped[str] = mapped_column(String(36), ForeignKey("ai_sources.source_id"), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False)
+    adopt_status: Mapped[str] = mapped_column(String(10), nullable=False, default="待采纳")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
 ALL_MODELS = [
     Project, Synopsis, Worldview, Character, CoolPoint, Hook, Chapter, Item,
     StyleLibrary, StyleFeature, ModifyRecord, ValidationReport, AiCallLog,
@@ -615,4 +739,6 @@ ALL_MODELS = [
     ChapterSummary, TimelineNode, CharacterRelationship, EmotionCurvePoint,
     SensitiveWord, NameFavorite, LayoutTemplate, ShortcutConfig,
     GarbledConfigModel,
+    StoryUnit, AntiAiRewriteRecord, BatchOperationRecord, BookTeardown,
+    IterationRecord, Script, ProofreadDraft,
 ]

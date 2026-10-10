@@ -27,6 +27,7 @@ from src.db.models import (
     Outline,
     Project,
     SensitiveWord,
+    StoryUnit,
     StyleFeature,
     StyleLibrary,
     Synopsis,
@@ -176,6 +177,10 @@ class WritingService:
                 f"第{chapter.volume_no}卷第{chapter.chapter_no}章大纲梗概要点缺失，请先补充大纲"
             )
 
+        story_unit_context = await self._get_story_unit_context(
+            project.project_id, chapter.volume_no, chapter.chapter_no
+        )
+
         auto_supporting = AutoSupportingService(self.session)
         try:
             await auto_supporting.ensure_sufficient_for_writing(
@@ -252,6 +257,9 @@ class WritingService:
             "user_ideas": user_ideas,
         }
 
+        if story_unit_context:
+            params["story_unit_context"] = story_unit_context
+
         result = await self.gateway.call_and_parse(
             module="writing",
             scene="write-chapter",
@@ -267,12 +275,65 @@ class WritingService:
         chapter.title = title
         return content
 
+    async def _get_story_unit_context(
+        self, project_id: str, volume_no: int, chapter_no: int
+    ) -> dict:
+        """查询该章节关联的 StoryUnit 链，构建分层上下文；无数据时返回空字典."""
+        outline_result = await self.session.execute(
+            select(Outline).where(Outline.project_id == project_id)
+        )
+        outline = outline_result.scalars().first()
+        if not outline:
+            return {}
+
+        vol_result = await self.session.execute(
+            select(VolumeOutline).where(
+                VolumeOutline.outline_id == outline.outline_id,
+                VolumeOutline.volume_no == volume_no,
+            )
+        )
+        vol = vol_result.scalars().first()
+        if not vol:
+            return {}
+
+        ch_result = await self.session.execute(
+            select(ChapterOutline).where(
+                ChapterOutline.volume_outline_id == vol.volume_outline_id,
+                ChapterOutline.chapter_no == chapter_no,
+            )
+        )
+        ch_outline = ch_result.scalars().first()
+        if not ch_outline or not ch_outline.story_unit_id:
+            return {}
+
+        chain: list[dict] = []
+        current_id: str | None = ch_outline.story_unit_id
+        while current_id:
+            unit = await self.session.get(StoryUnit, current_id)
+            if not unit:
+                break
+            chain.append({
+                "level_type": unit.level_type,
+                "unit_name": unit.unit_name,
+                "synopsis": unit.synopsis,
+                "narrative_duty": unit.narrative_duty,
+            })
+            current_id = unit.parent_unit_id
+
+        if not chain:
+            return {}
+
+        chain.reverse()
+        return {"unit_chain": chain}
+
     async def start_writing(
         self,
         project_id: str,
         style_library_id: str | None = None,
         progress_callback: Any = None,
         user_ideas: str = "",
+        proofread_mode: str = "off",
+        proofread_sources: dict | None = None,
     ) -> AsyncGenerator[WritingProgressEvent, None]:
         """启动批量撰写，异步生成进度事件."""
         project = await self.session.get(Project, project_id)
@@ -367,6 +428,11 @@ class WritingService:
                 await self.session.commit()
                 log_writing_step(project_id, chapter.volume_no, chapter.chapter_no, "completed", 0)
 
+                if proofread_mode != "off" and proofread_sources:
+                    await self._run_proofread(
+                        project_id, chapter, proofread_mode, proofread_sources
+                    )
+
             except Exception as e:
                 self.logger.error(f"第{chapter.volume_no}卷第{chapter.chapter_no}章生成失败: {e}")
                 chapter.gen_status = "failed"
@@ -404,6 +470,42 @@ class WritingService:
             completed_ratio=1.0,
             message="全书撰写完成",
         )
+
+    async def _run_proofread(
+        self,
+        project_id: str,
+        chapter: Chapter,
+        proofread_mode: str,
+        proofread_sources: dict,
+    ) -> None:
+        from src.services.proofread_service import ProofreadService
+
+        proofread_service = ProofreadService(self.session)
+        try:
+            if proofread_mode == "ab":
+                result = await proofread_service.proofread_ab(
+                    chapter.chapter_id,
+                    proofread_sources.get("source_a", ""),
+                    proofread_sources.get("source_b", ""),
+                )
+            elif proofread_mode == "abc":
+                result = await proofread_service.proofread_abc(
+                    chapter.chapter_id,
+                    proofread_sources.get("source_a", ""),
+                    proofread_sources.get("source_b", ""),
+                    proofread_sources.get("source_c", ""),
+                    proofread_sources.get("source_eval", ""),
+                )
+            else:
+                return
+            if result.drafts:
+                latest_draft = result.drafts[-1]
+                await proofread_service.adopt_draft(latest_draft.draft_id)
+                await self.session.commit()
+        except Exception as e:
+            self.logger.warning(
+                f"第{chapter.volume_no}卷第{chapter.chapter_no}章接力纠错失败: {e}"
+            )
 
     def pause(self) -> None:
         self._paused = True

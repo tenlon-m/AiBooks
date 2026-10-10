@@ -19,7 +19,14 @@ class SseWritingWorker(QThread):
     error = Signal(str)
     finished_ok = Signal()
 
-    def __init__(self, project_id: str, style_library_id: str | None = None, user_ideas: str = "") -> None:
+    def __init__(
+        self,
+        project_id: str,
+        style_library_id: str | None = None,
+        user_ideas: str = "",
+        proofread_mode: str = "off",
+        proofread_sources: dict | None = None,
+    ) -> None:
         super().__init__()
         config = get_config()
         self._url = f"http://{config.api_host}:{config.api_port}/api/writing/{project_id}/progress"
@@ -29,6 +36,10 @@ class SseWritingWorker(QThread):
             params.append(f"style_library_id={style_library_id}")
         if user_ideas:
             params.append(f"user_ideas={quote(user_ideas)}")
+        if proofread_mode and proofread_mode != "off":
+            params.append(f"proofread_mode={proofread_mode}")
+        if proofread_sources:
+            params.append(f"proofread_sources={quote(json.dumps(proofread_sources, ensure_ascii=False))}")
         if params:
             self._url += "?" + "&".join(params)
         self._logger = get_logger()

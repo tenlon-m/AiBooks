@@ -71,6 +71,8 @@ class OutlinePage(QWidget):
         self._batch_scene_completed: int = 0
         self._batch_scene_failed: list[dict] = []
         self._repair_sse_worker: OutlineRepairSseWorker | None = None
+        self._layer_mode: bool = False
+        self._story_unit_tree_data: dict | None = None
         self._init_ui()
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
@@ -113,6 +115,19 @@ class OutlinePage(QWidget):
         layout.addWidget(self._outline_tree)
 
         btn_layout = QHBoxLayout()
+        self._layer_mode_btn = QPushButton("分层模式")
+        self._layer_mode_btn.setToolTip("切换雪花式5级分层大纲模式（分卷→大篇→中篇→小篇→章纲）")
+        self._layer_mode_btn.setCheckable(True)
+        self._layer_mode_btn.setStyleSheet("background-color: #607d8b; color: white; padding: 6px 16px; border-radius: 4px;")
+        self._layer_mode_btn.clicked.connect(self._on_layer_mode_toggle)
+        self._gen_volume_btn = QPushButton("生成分卷层")
+        self._gen_volume_btn.setToolTip("生成雪花式分卷层（最高层），需先完成梗概/世界观/人物")
+        self._gen_volume_btn.setStyleSheet("background-color: #e65100; color: white; padding: 6px 16px; border-radius: 4px;")
+        self._gen_volume_btn.clicked.connect(self._generate_volume_layer)
+        self._gen_child_btn = QPushButton("生成下层")
+        self._gen_child_btn.setToolTip("选中某单元后生成其下一层（大篇→中篇→小篇）")
+        self._gen_child_btn.setStyleSheet("background-color: #f57c00; color: white; padding: 6px 16px; border-radius: 4px;")
+        self._gen_child_btn.clicked.connect(self._generate_child_layer)
         self._batch_btn = QPushButton("AI分批生成大纲")
         self._batch_btn.setToolTip("按每批若干章依次生成，每批完成即时显示，避免整本一次生成超时")
         self._batch_btn.setStyleSheet("background-color: #4caf50; color: white; padding: 6px 16px; border-radius: 4px;")
@@ -159,6 +174,9 @@ class OutlinePage(QWidget):
         self._refresh_btn.setStyleSheet("background-color: #2196f3; color: white; padding: 6px 16px; border-radius: 4px;")
         self._refresh_btn.clicked.connect(self._load_outline)
 
+        btn_layout.addWidget(self._layer_mode_btn)
+        btn_layout.addWidget(self._gen_volume_btn)
+        btn_layout.addWidget(self._gen_child_btn)
         btn_layout.addWidget(self._batch_btn)
         btn_layout.addWidget(self._pause_btn)
         btn_layout.addWidget(self._resume_btn)
@@ -257,6 +275,145 @@ class OutlinePage(QWidget):
 
     def _on_load_error(self, msg: str) -> None:
         self._status_label.setText(f"加载大纲失败: {msg}")
+
+    def _on_layer_mode_toggle(self) -> None:
+        self._layer_mode = self._layer_mode_btn.isChecked()
+        if self._layer_mode:
+            self._layer_mode_btn.setText("分层模式(开)")
+            self._gen_volume_btn.setEnabled(True)
+            self._gen_child_btn.setEnabled(True)
+            self._load_story_unit_tree()
+        else:
+            self._layer_mode_btn.setText("分层模式")
+            self._gen_volume_btn.setEnabled(False)
+            self._gen_child_btn.setEnabled(False)
+            self._load_outline()
+
+    def _load_story_unit_tree(self) -> None:
+        if not self._project_id:
+            return
+        client = get_api_client()
+        worker = ApiWorker(client.get, f"/api/story-units/tree/{self._project_id}")
+        worker.result.connect(self._on_story_unit_tree_loaded)
+        worker.error.connect(self._on_story_unit_tree_error)
+        self._workers.append(worker)
+        worker.start()
+
+    def _on_story_unit_tree_loaded(self, data: dict | None) -> None:
+        self._story_unit_tree_data = data
+        self._outline_tree.clear()
+        if not data or not data.get("units"):
+            self._status_label.setText("分层模式：暂无分层数据，可点击「生成分卷层」开始")
+            return
+        units = data.get("units", [])
+        unit_map: dict[str | None, list[dict]] = {}
+        for u in units:
+            unit_map.setdefault(u.get("parent_unit_id"), []).append(u)
+        level_label = {"volume": "分卷", "major": "大篇", "middle": "中篇", "minor": "小篇"}
+        for vol in unit_map.get(None, []):
+            vol_item = QTreeWidgetItem([
+                f"【分卷】",
+                vol.get("unit_name", ""),
+                "",
+                vol.get("synopsis", "")[:20] + "..." if len(vol.get("synopsis", "")) > 20 else vol.get("synopsis", ""),
+                str(vol.get("chapter_count", 0)),
+            ])
+            vol_item.setData(0, Qt.UserRole, {"type": "story_unit", "unit": vol})
+            self._add_child_units(vol_item, vol.get("story_unit_id"), unit_map, level_label)
+            self._outline_tree.addTopLevelItem(vol_item)
+        self._outline_tree.expandAll()
+        self._status_label.setText(f"分层模式：共 {len(units)} 个故事单元")
+
+    def _add_child_units(
+        self,
+        parent_item: QTreeWidgetItem,
+        parent_unit_id: str,
+        unit_map: dict[str | None, list[dict]],
+        level_label: dict,
+    ) -> None:
+        for u in unit_map.get(parent_unit_id, []):
+            lt = u.get("level_type", "")
+            label = level_label.get(lt, lt)
+            synopsis = u.get("synopsis", "")
+            preview = synopsis[:20] + "..." if len(synopsis) > 20 else synopsis
+            child_item = QTreeWidgetItem([
+                f"  【{label}】",
+                u.get("unit_name", ""),
+                u.get("narrative_duty", "")[:20] if u.get("narrative_duty") else "",
+                preview,
+                str(u.get("chapter_count", 0)),
+            ])
+            child_item.setData(0, Qt.UserRole, {"type": "story_unit", "unit": u})
+            child_item.setToolTip(3, synopsis)
+            parent_item.addChild(child_item)
+            self._add_child_units(child_item, u.get("story_unit_id"), unit_map, level_label)
+
+    def _on_story_unit_tree_error(self, msg: str) -> None:
+        self._status_label.setText(f"加载分层数据失败: {msg}")
+
+    def _generate_volume_layer(self) -> None:
+        if not self._project_id:
+            QMessageBox.warning(self, "提示", "请先选择项目")
+            return
+        client = get_api_client()
+        worker = ApiWorker(
+            client.post,
+            "/api/story-units/generate-volume-layer",
+            json={"project_id": self._project_id, "parent_unit_id": None, "level_type": "volume"},
+        )
+        worker.result.connect(self._on_volume_layer_done)
+        worker.error.connect(self._on_layer_error)
+        self._workers.append(worker)
+        worker.start()
+        self._status_label.setText("正在生成分卷层...")
+
+    def _on_volume_layer_done(self, data: list) -> None:
+        self._status_label.setText(f"分卷层生成完成，共 {len(data)} 个分卷")
+        self._load_story_unit_tree()
+
+    def _generate_child_layer(self) -> None:
+        if not self._project_id:
+            QMessageBox.warning(self, "提示", "请先选择项目")
+            return
+        current = self._outline_tree.currentItem()
+        if not current:
+            QMessageBox.warning(self, "提示", "请先选择一个故事单元")
+            return
+        item_data = current.data(0, Qt.UserRole)
+        if not item_data or item_data.get("type") != "story_unit":
+            QMessageBox.warning(self, "提示", "请选择一个故事单元节点")
+            return
+        unit = item_data.get("unit", {})
+        parent_unit_id = unit.get("story_unit_id", "")
+        level_type = unit.get("level_type", "")
+        child_map = {"volume": "major", "major": "middle", "middle": "minor"}
+        child_level = child_map.get(level_type)
+        if not child_level:
+            QMessageBox.information(self, "提示", "该单元已是最低层（小篇），无需再生成下层")
+            return
+        client = get_api_client()
+        worker = ApiWorker(
+            client.post,
+            "/api/story-units/generate-layer",
+            json={
+                "project_id": self._project_id,
+                "parent_unit_id": parent_unit_id,
+                "level_type": child_level,
+            },
+        )
+        worker.result.connect(self._on_child_layer_done)
+        worker.error.connect(self._on_layer_error)
+        self._workers.append(worker)
+        worker.start()
+        self._status_label.setText(f"正在生成{child_level}层...")
+
+    def _on_child_layer_done(self, data: list) -> None:
+        self._status_label.setText(f"下层生成完成，共 {len(data)} 个子单元")
+        self._load_story_unit_tree()
+
+    def _on_layer_error(self, msg: str) -> None:
+        self._status_label.setText(f"分层生成失败: {msg}")
+        QMessageBox.warning(self, "分层生成失败", msg)
 
     def _on_outline_order_changed(self) -> None:
         """拖拽完成後收集新順序並調用後端 reorder 接口.

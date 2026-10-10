@@ -72,11 +72,20 @@ class CreationService:
     async def list_projects(self) -> list[ProjectDto]:
         result = await self.session.execute(select(Project))
         projects = list(result.scalars().all())
-        dtos = []
-        for p in projects:
-            synopsis = await self.session.get(Synopsis, p.project_id)
-            worldview = await self.session.get(Worldview, p.project_id)
-            dtos.append(ProjectDto(
+        project_ids = [p.project_id for p in projects]
+
+        syn_result = await self.session.execute(
+            select(Synopsis).where(Synopsis.project_id.in_(project_ids))
+        )
+        synopsis_ids = {s.project_id for s in syn_result.scalars().all()}
+
+        wv_result = await self.session.execute(
+            select(Worldview).where(Worldview.project_id.in_(project_ids))
+        )
+        worldview_ids = {w.project_id for w in w_result.scalars().all()}
+
+        return [
+            ProjectDto(
                 project_id=p.project_id,
                 book_title=p.book_title,
                 volume_count=p.volume_count,
@@ -86,10 +95,11 @@ class CreationService:
                 status=p.status,
                 created_at=p.created_at,
                 updated_at=p.updated_at,
-                has_synopsis=synopsis is not None,
-                has_worldview=worldview is not None,
-            ))
-        return dtos
+                has_synopsis=p.project_id in synopsis_ids,
+                has_worldview=p.project_id in worldview_ids,
+            )
+            for p in projects
+        ]
 
     async def set_synopsis(self, project_id: str, content: str, source: str) -> SynopsisResponse:
         project = await self.session.get(Project, project_id)

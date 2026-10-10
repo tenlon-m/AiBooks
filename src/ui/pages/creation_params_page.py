@@ -245,20 +245,24 @@ class CreationParamsPage(QWidget):
         result = {}
         try:
             result["synopsis"] = client.get(f"/api/creation/{project_id}/synopsis")
-        except Exception:
-            pass
+        except Exception as e:
+            result["synopsis_error"] = str(e)
         try:
             result["worldview"] = client.get(f"/api/creation/{project_id}/worldview")
-        except Exception:
-            pass
+        except Exception as e:
+            result["worldview_error"] = str(e)
         return result
 
     def _on_synopsis_worldview_loaded(self, data: dict) -> None:
-        if "synopsis" in data:
+        if "synopsis_error" in data:
+            self.status_label.setText(f"加载梗概失败：{data['synopsis_error']}")
+        elif "synopsis" in data:
             content = data["synopsis"].get("content", "")
             self.synopsis_edit.setPlainText(content)
             self._saved_synopsis = content
-        if "worldview" in data:
+        if "worldview_error" in data:
+            self.status_label.setText(f"加载世界观失败：{data['worldview_error']}")
+        elif "worldview" in data:
             content = data["worldview"].get("content", "")
             self.worldview_edit.setPlainText(content)
             self._saved_worldview = content

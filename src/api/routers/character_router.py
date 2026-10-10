@@ -1,7 +1,7 @@
 """人物管理路由."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.schemas.character_schema import (
@@ -14,6 +14,7 @@ from src.api.schemas.character_schema import (
     CharacterDto,
     CharacterUpdateRequest,
     MergeResultResponse,
+    UpdateScopeRequest,
 )
 from src.db.session import get_session
 from src.services.character_service import CharacterService
@@ -103,6 +104,23 @@ async def create_character(req: CharacterCreateRequest, session: AsyncSession = 
     return await service.create(req.project_id, req.name, req.identity, req.intro, req.relation, req.source)
 
 
+@router.get("/by-scope/{project_id}", response_model=list[CharacterDto])
+async def list_by_scope(
+    project_id: str,
+    scope_type: str = Query(...),
+    scope_unit_id: str | None = Query(default=None),
+    session: AsyncSession = Depends(get_session),
+):
+    service = CharacterService(session)
+    try:
+        return await service.list_by_scope(project_id, scope_type, scope_unit_id)
+    except ValueError as e:
+        msg = str(e)
+        if "不存在" in msg:
+            raise HTTPException(status_code=404, detail=msg)
+        raise HTTPException(status_code=422, detail=msg)
+
+
 @router.get("/{project_id}", response_model=list[CharacterDto])
 async def list_characters(project_id: str, session: AsyncSession = Depends(get_session)):
     service = CharacterService(session)
@@ -116,6 +134,22 @@ async def update_character(character_id: str, req: CharacterUpdateRequest, sessi
         return await service.update(character_id, req)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.put("/{character_id}/scope", response_model=CharacterDto)
+async def update_scope(
+    character_id: str,
+    req: UpdateScopeRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    service = CharacterService(session)
+    try:
+        return await service.update_scope(character_id, req.scope_type, req.scope_unit_id)
+    except ValueError as e:
+        msg = str(e)
+        if "不存在" in msg:
+            raise HTTPException(status_code=404, detail=msg)
+        raise HTTPException(status_code=422, detail=msg)
 
 
 @router.post("/{character_id}/confirm", response_model=CharacterDto)

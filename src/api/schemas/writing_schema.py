@@ -11,6 +11,8 @@ class StartWritingRequest(BaseModel):
     style_library_id: str | None = None
     user_ideas: str = ""
     garbled_config: dict | None = None
+    proofread_mode: str = "off"
+    proofread_sources: dict | None = None
 
 
 class ChapterSaveItem(BaseModel):

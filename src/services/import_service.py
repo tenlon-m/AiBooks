@@ -28,8 +28,19 @@ class ImportService:
         if size > max_bytes:
             raise ValueError(f"文件过大: {size / 1024 / 1024:.1f}MB，上限 {self.config.import_max_file_size_mb}MB")
 
+    def _detect_encoding(self, path: Path) -> str:
+        for enc in ("utf-8", "gbk", "gb2312", "big5"):
+            try:
+                with open(path, "r", encoding=enc) as f:
+                    f.read(1024)
+                return enc
+            except (UnicodeDecodeError, LookupError):
+                continue
+        return "utf-8"
+
     def _parse_txt(self, path: Path) -> str:
-        return path.read_text(encoding="utf-8")
+        encoding = self._detect_encoding(path)
+        return path.read_text(encoding=encoding)
 
     def _parse_md(self, path: Path) -> str:
         import markdown

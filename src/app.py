@@ -70,6 +70,12 @@ def init_app() -> None:
     from src.db.migrations.add_garbled_configs import (
         upgrade as upgrade_garbled_configs,
     )
+    from src.db.migrations.add_tangku_new_tables import (
+        upgrade as upgrade_tangku_tables,
+    )
+    from src.db.migrations.add_tangku_new_columns import (
+        upgrade as upgrade_tangku_columns,
+    )
     from src.utils.async_bridge import get_bridge
 
     bridge = get_bridge()
@@ -82,6 +88,8 @@ def init_app() -> None:
     bridge.run_async(upgrade_gap_fill())
     bridge.run_async(upgrade_naming_meaning())
     bridge.run_async(upgrade_garbled_configs())
+    bridge.run_async(upgrade_tangku_tables())
+    bridge.run_async(upgrade_tangku_columns())
 
     from src.db.session import session_scope
     from src.services.style_library_service import StyleLibraryService

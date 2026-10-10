@@ -1,0 +1,31 @@
+{% extends "_base/base-system.j2" %}
+
+{% block output_format %}
+输出要求：
+- 语言：{{ language | default("zh-CN") }}
+- 直接输出纠错后的完整正文纯文本，不要输出 JSON、不要添加任何说明文字、不要用代码块包裹
+- 保留原文段落结构，仅做纠错与润色
+{% endblock %}
+
+{% block content %}
+## 任务：{{ proofread_stage | default("B稿纠错") }}——多AI接力纠错
+
+{% if previous_draft %}
+### 前序稿件（上一稿，作为本次纠错基准）
+{{ previous_draft }}
+{% endif %}
+
+### 待纠错内容
+{% if input_content %}
+{{ input_content }}
+{% else %}
+（无输入内容，请基于前序稿件直接生成{{ proofread_stage | default("B稿") }}）
+{% endif %}
+
+### 纠错要求
+1. 修正错别字、标点误用、语病、冗余表达
+2. 保持情节、人物、设定与原稿一致，不得改写关键情节走向
+3. 提升文笔流畅度与风格统一性，但不得改变原意
+4. 接力纠错：在上一稿基础上继续打磨，而非推倒重写
+5. 输出纠错后的完整正文，字数不少于 50 字
+{% endblock %}

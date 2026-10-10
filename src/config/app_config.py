@@ -133,6 +133,17 @@ class AppConfig(BaseSettings):
     reading_mode_default_line_spacing: float = 1.8
     shortcut_conflict_check_enabled: bool = True
 
+    anti_ai_rewrite_timeout_seconds: int = 60
+    batch_extract_timeout_seconds: int = 90
+    batch_rewrite_timeout_seconds: int = 60
+    book_teardown_timeout_seconds: int = 120
+    item_extract_timeout_seconds: int = 120
+    iteration_timeout_seconds: int = 90
+    script_generate_timeout_seconds: int = 90
+    proofread_timeout_seconds: int = 90
+    evaluate_timeout_seconds: int = 60
+    story_unit_generate_timeout_seconds: int = 60
+
     # SQLite 长写事务看门狗：任何写事务持有超过阈值秒数就打 WARNING 并指出
     # 开事务的代码位置。正常业务写入都是毫秒级，所以超过阈值基本就是"攥着写锁
     # 去调 AI"的 bug —— 不必等别人撞锁报错就能提前发现。

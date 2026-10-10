@@ -1,0 +1,25 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：为合并后的章节生成新标题
+
+### 原章节标题
+{% for t in original_titles %}
+- {{ t }}
+{% endfor %}
+
+### 合并后内容预览
+{{ content_preview }}
+
+### 生成要求
+1. 根据合并后的章节内容，生成一个简洁准确的章节标题
+2. 标题应概括本章节核心情节，不超过20字
+3. 不要使用"合并"等元描述词汇
+
+### 输出格式
+```json
+{
+  "title": "新章节标题"
+}
+```
+{% endblock %}
