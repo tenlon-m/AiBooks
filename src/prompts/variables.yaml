@@ -1,0 +1,437 @@
+# 提示词模板变量定义与传参规范
+global:
+  output_format:
+    type: str
+    default: json
+    description: 输出格式约束
+  language:
+    type: str
+    default: zh-CN
+    description: 输出语言
+  max_tokens:
+    type: int
+    default: 4096
+    description: 最大输出token数
+
+scenes:
+  character.extract-main:
+    synopsis:
+      type: str
+      required: true
+      description: 故事梗概
+    worldview:
+      type: str
+      required: true
+      description: 世界观设定
+
+  character.extract-supporting:
+    synopsis:
+      type: str
+      required: true
+    worldview:
+      type: str
+      required: true
+    existing_characters:
+      type: list
+      required: true
+      description: 已有人物清单
+
+  character.generate-supporting:
+    synopsis:
+      type: str
+      required: true
+    worldview:
+      type: str
+      required: true
+    existing_characters:
+      type: list
+      required: true
+    count:
+      type: int
+      required: false
+      default: 3
+      description: 需生成的配角数量
+
+  character.auto-generate-supporting:
+    synopsis:
+      type: str
+      required: true
+      description: 故事梗概
+    worldview:
+      type: str
+      required: true
+      description: 世界观设定
+    existing_characters:
+      type: list
+      required: true
+      description: 已有人物清单
+    scene_context:
+      type: object
+      required: true
+      description: 触发场景上下文（scene_type/volume_no/chapter_no/plot_requirement）
+    count:
+      type: int
+      required: false
+      default: 3
+      description: 需生成的配角数量
+
+  character.import-from-file:
+    file_content:
+      type: str
+      required: true
+      description: 设定文档文本内容
+    existing_characters:
+      type: list
+      required: false
+      description: 已有人物清单
+
+  outline.generate-outline:
+    synopsis:
+      type: str
+      required: true
+      description: 故事梗概
+    worldview:
+      type: str
+      required: true
+      description: 世界观设定
+    characters:
+      type: list
+      required: true
+      description: 已确认人物清单
+    volume_count:
+      type: int
+      required: true
+      description: 卷数
+    chapters_per_volume:
+      type: int
+      required: true
+      description: 每卷章节数
+    words_per_chapter:
+      type: int
+      required: true
+      description: 每章字数
+    synopsis_min_chars:
+      type: int
+      required: false
+      default: 100
+      description: 章节梗概要点最小字数
+    synopsis_max_chars:
+      type: int
+      required: false
+      default: 300
+      description: 章节梗概要点最大字数
+
+  outline.generate-outline-batch:
+    synopsis:
+      type: str
+      required: true
+      description: 故事梗概
+    worldview:
+      type: str
+      required: true
+      description: 世界观设定
+    characters:
+      type: list
+      required: true
+      description: 已确认人物清单
+    volume_count:
+      type: int
+      required: true
+      description: 总卷数
+    chapters_per_volume:
+      type: int
+      required: true
+      description: 每卷章节数
+    words_per_chapter:
+      type: int
+      required: true
+      description: 每章字数
+    total_chapter_count:
+      type: int
+      required: true
+      description: 全书总章节数
+    generated_chapter_count:
+      type: int
+      required: true
+      description: 已生成章节数
+    batch_volume_no:
+      type: int
+      required: true
+      description: 本批所属卷号
+    batch_volume_name:
+      type: str
+      required: false
+      default: ""
+      description: 本批所属卷已确定的卷名（空表示待生成）
+    batch_chapter_start:
+      type: int
+      required: true
+      description: 本批起始章号
+    batch_chapter_count:
+      type: int
+      required: true
+      description: 本批生成章节数
+    prev_chapters:
+      type: list
+      required: false
+      description: 前文已生成章节（含卷号/章号/章节名/梗概），用于衔接
+    synopsis_min_chars:
+      type: int
+      required: false
+      default: 100
+      description: 章节梗概要点最小字数
+    synopsis_max_chars:
+      type: int
+      required: false
+      default: 300
+      description: 章节梗概要点最大字数
+
+  outline.check-consistency:
+    synopsis:
+      type: str
+      required: true
+      description: 故事梗概
+    worldview:
+      type: str
+      required: true
+      description: 世界观设定
+    characters:
+      type: list
+      required: true
+      description: 已确认人物清单
+    volume_no:
+      type: int
+      required: true
+      description: 待校验章节所属卷号
+    chapter_start:
+      type: int
+      required: true
+      description: 待校验起始章号
+    chapter_count:
+      type: int
+      required: true
+      description: 待校验章节数
+    chapters:
+      type: list
+      required: true
+      description: 待校验章节（含章节名/梗概/登记出场人物）
+
+  hook.design-cool-points:
+    synopsis:
+      type: str
+      required: true
+    worldview:
+      type: str
+      required: true
+    characters:
+      type: list
+      required: true
+    chapter_plan:
+      type: list
+      required: true
+      description: 卷章规划
+
+  hook.design-hooks:
+    synopsis:
+      type: str
+      required: true
+    characters:
+      type: list
+      required: true
+    chapter_plan:
+      type: list
+      required: true
+    cool_points:
+      type: list
+      required: true
+
+  hook.generate-chapter:
+    synopsis:
+      type: str
+      required: true
+      description: 故事梗概
+    worldview:
+      type: str
+      required: true
+      description: 世界观设定
+    characters:
+      type: list
+      required: true
+      description: 正式人物清单
+    chapter_synopsis:
+      type: str
+      required: true
+      description: 本章大纲梗概要点
+    prev_hooks:
+      type: list
+      required: false
+      description: 前文已生成爽点钩子
+    volume_no:
+      type: int
+      required: true
+    chapter_no:
+      type: int
+      required: true
+
+  writing.write-chapter:
+    synopsis:
+      type: str
+      required: true
+    worldview:
+      type: str
+      required: true
+    characters:
+      type: list
+      required: true
+    cool_point:
+      type: object
+      required: true
+    hook:
+      type: object
+      required: true
+    prev_summary:
+      type: str
+      required: false
+      description: 前文摘要
+    style_features:
+      type: list
+      required: false
+      description: 风格特征
+    items:
+      type: list
+      required: false
+      description: 物品清单
+    volume_no:
+      type: int
+      required: true
+    chapter_no:
+      type: int
+      required: true
+    words_per_chapter:
+      type: int
+      required: true
+
+  writing.extract-items:
+    chapter_content:
+      type: str
+      required: true
+    existing_items:
+      type: list
+      required: false
+
+  validation.full-book:
+    synopsis:
+      type: str
+      required: true
+    worldview:
+      type: str
+      required: true
+    characters:
+      type: list
+      required: true
+    chapters:
+      type: list
+      required: true
+    hooks:
+      type: list
+      required: true
+    items:
+      type: list
+      required: true
+    style_features:
+      type: list
+      required: false
+
+  validation.single-chapter:
+    synopsis:
+      type: str
+      required: true
+    worldview:
+      type: str
+      required: true
+    characters:
+      type: list
+      required: true
+    chapter_content:
+      type: str
+      required: true
+
+  polish.auto-polish:
+    synopsis:
+      type: str
+      required: true
+    worldview:
+      type: str
+      required: true
+    characters:
+      type: list
+      required: true
+    original_content:
+      type: str
+      required: true
+    problems:
+      type: list
+      required: true
+      description: 不符合项
+
+  style.extract-features:
+    corpus_text:
+      type: str
+      required: true
+      description: 投喂语料文本
+
+  creation.polish-synopsis:
+    raw_ideas:
+      type: str
+      required: true
+      description: 用户输入的简单思路（≥10字）
+    book_title:
+      type: str
+      required: false
+      default: ""
+      description: 书名
+    volume_count:
+      type: int
+      required: true
+      description: 卷数
+    chapters_per_volume:
+      type: int
+      required: true
+      description: 每卷章节数
+    words_per_chapter:
+      type: int
+      required: true
+      description: 每章字数
+
+  creation.polish-worldview:
+    raw_ideas:
+      type: str
+      required: true
+      description: 用户输入的简单思路（≥10字）
+    book_title:
+      type: str
+      required: false
+      default: ""
+      description: 书名
+    volume_count:
+      type: int
+      required: true
+      description: 卷数
+    chapters_per_volume:
+      type: int
+      required: true
+      description: 每卷章节数
+    words_per_chapter:
+      type: int
+      required: true
+      description: 每章字数
+    synopsis:
+      type: str
+      required: false
+      default: ""
+      description: 已有故事梗概（约束世界观方向）
+
+source_type_overrides:
+  local_ollama:
+    max_tokens: 2048
+    output_format_instructions: "请严格按照以下JSON格式输出，不要添加任何额外说明文字"

@@ -1,0 +1,40 @@
+{% extends "_base/base-system.j2" %}
+{% import "_base/base-de-ai.j2" as de_ai %}
+
+{% block content %}
+## 任务：世界观设定AI润色
+
+你是一位专业的网文小说世界观架构师。请根据用户提供的简单思路，扩展为完整的世界观设定。
+
+### 书名
+{{ book_title | default("（未命名）") }}
+
+### 全书规模
+共 {{ volume_count }} 卷 × {{ chapters_per_volume }} 章/卷 × {{ words_per_chapter }} 字/章 ≈ {{ volume_count * chapters_per_volume * words_per_chapter }} 字
+
+{% if synopsis and synopsis.strip() %}
+### 已有故事梗概（世界观须与梗概方向一致）
+{{ synopsis }}
+
+{% endif %}
+### 用户的简单思路与想法
+{{ raw_ideas }}
+
+### 润色要求
+1. 根据用户的简单思路，扩展为体系完整、逻辑自洽的世界观设定
+2. 世界观须包含：世界背景、力量体系、势力格局、核心规则、地理/社会环境
+3. 篇幅建议 200-500 字，必须 ≥50 字
+4. 思路中的核心设定须保留，不得偏离用户原始意图
+{% if synopsis and synopsis.strip() %}
+5. 世界观须与已有故事梗概方向一致，不得矛盾
+{% endif %}
+
+{{ de_ai.inject_de_ai_compact() }}
+
+### 输出格式
+```json
+{
+  "polished_content": "完善后的世界观设定全文"
+}
+```
+{% endblock %}

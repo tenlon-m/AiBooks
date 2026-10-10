@@ -1,0 +1,73 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：根据校验问题清单修复本章爽点与钩子
+
+### 故事梗概
+{{ synopsis }}
+
+### 世界观设定
+{{ worldview }}
+
+### 已确认人物清单
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）
+{% endfor %}
+
+{% if naming_favorites and naming_favorites|length > 0 %}
+### 作者命名库
+{% for t, names in naming_favorites.items() %}
+- {{ t }}：{{ names | join("、") }}
+{% endfor %}
+使用规则：修复中涉及的地点、势力/门派、功法/技能、物品名称，优先从上面对应类别中选用，保持全书命名一致性。
+{% endif %}
+
+### 本章信息
+- 第{{ volume_no }}卷第{{ chapter_no }}章
+- 本章大纲梗概要点：{{ chapter_synopsis }}
+
+### 本章原爽点
+{% for cp in cool_points %}
+- [{{ cp.cool_type }}] {{ cp.content_desc }}
+{% endfor %}
+
+### 本章原钩子
+{% for h in hooks %}
+- {{ h.hook_content }}（计划回收于第{{ h.recycle_volume_no }}卷第{{ h.recycle_chapter_no }}章，状态：{{ h.recycle_status }}）
+{% endfor %}
+
+### 前文已生成钩子（上下文）
+{% for h in prev_hooks %}
+- 第{{ h.volume_no }}卷第{{ h.chapter_no }}章：{{ h.hook_content }}
+{% endfor %}
+
+### 本章校验问题清单
+{% for issue in chapter_issues %}
+- 【{{ issue.level }}】{{ issue.type }}：{{ issue.detail }}（建议：{{ issue.suggestion }}）
+{% endfor %}
+
+### 修复要求
+1. 仅针对上述问题清单中涉及的问题进行修复，不得无差别重写未涉及问题的爽点或钩子
+2. **输出须包含本章全部爽点与钩子**：cool_points_new 须包含本章所有爽点（未涉及问题的保持原样不变，涉及问题的替换为修复后版本）；hooks_new 须包含本章所有钩子（同理）。后端将覆盖式写入，仅返回修复部分会导致未涉及问题的爽点钩子丢失
+3. 修复后爽点描述与钩子内容长度 ≥ 50 字
+4. 钩子回收点 (recycle_volume_no, recycle_chapter_no) 必须严格晚于埋钩点 (volume_no, chapter_no)
+5. 钩子回收距离不超过 3 卷
+6. 涉及人物仅从已确认清单选取，禁止硬编码任何人物/地点/势力/功法/物品/情节
+7. 不得改动正文/世界观/人物清单/大纲
+8. 针对历史题材须按既定历史节点顺序调整，禁止跨历史阶段混搭人物与情节
+
+### 输出格式
+```json
+{
+  "cool_points_new": [
+    {"type": "爽点类型", "content": "修复后爽点内容描述"}
+  ],
+  "hooks_new": [
+    {"content": "修复后钩子内容", "recycle_volume_no": 1, "recycle_chapter_no": 3, "recycle_status": "pending"}
+  ],
+  "adjust_notes": [
+    {"position": "修改位置", "reason": "修改原因", "original": "原文", "polished": "修改后"}
+  ]
+}
+```
+{% endblock %}

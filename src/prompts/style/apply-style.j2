@@ -1,0 +1,7 @@
+{# 风格约束注入 - 被writing等模块include #}
+{% if style_features and style_features|length > 0 %}
+## 风格约束（请严格模仿）
+{% for f in style_features %}
+- {{ f.dimension }}：{{ f.description }}
+{% endfor %}
+{% endif %}

@@ -1,0 +1,59 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：校验已撰写章节与大纲/风格库的一致性
+
+### 已撰写章节
+{% for ch in chapters %}
+### 第{{ ch.volume_no }}卷第{{ ch.chapter_no }}章 {{ ch.title }}
+{{ ch.content }}
+
+{% endfor %}
+
+### 大纲各章梗概要点
+{% for oc in outline_chapters %}
+- 第{{ oc.volume_no }}卷第{{ oc.chapter_no }}章：{{ oc.synopsis_points }}
+{% endfor %}
+
+### 风格库特征
+{% for f in style_features %}
+- {{ f.dimension }}：{{ f.description }}
+{% endfor %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 用户对校验的思路与想法（请在校验时充分参考）
+{{ user_ideas }}
+
+{% endif %}
+### 校验维度（逐章核对，不要漏项）
+1. 章节内容与大纲梗概要点匹配度：每章内容是否与该章大纲梗概要点的情节走向一致，有无跑题或遗漏关键情节
+2. 风格一致性：用词/句式/叙事节奏是否与风格库特征对齐，有无明显风格偏差
+3. 情节衔接：前后章是否连贯，有无事件重复或关键过渡缺失
+4. 人物出场逻辑：章节中出现的人物是否在已确认人物清单内，有无凭空出现或无交代退场
+
+### 输出格式
+```json
+{
+  "score": 85,
+  "summary": "总体评价（100字以内）",
+  "issues": [
+    {
+      "level": "严重|一般|轻微",
+      "volume_no": 1,
+      "chapter_no": 3,
+      "type": "偏离大纲|风格偏差|情节断裂|人物出场|其他",
+      "detail": "问题描述（指明具体章节与位置）",
+      "suggestion": "可执行的修改建议"
+    }
+  ]
+}
+```
+若无问题，issues 返回空数组；禁止编造不存在的问题。
+{% if garbled_config_enabled %}
+### 字符/格式检测维度
+除上述校验维度外，还需检测以下问题：
+- **字符乱码**（type="字符乱码"）：控制字符、零宽字符、Unicode替换字符(U+FFFD)、私用区字符、乱码符号序列
+- **格式错乱**（type="格式错乱"）：连续空行超过上限、行首行尾冗余空白、重复标点、全角空格滥用、制表符、连续空格
+检出时在 issues 中新增对应条目，level 按影响程度判定（字符乱码≥"一般"，格式错乱="轻微"）。
+{% endif %}
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "_base/base-system.j2" %}
+{% import "_base/base-style-constraint.j2" as style %}
+{% import "_base/base-de-ai.j2" as de_ai %}
+
+{% block content %}
+## 任务：扩写指定文本
+
+请对给定文本进行扩写，增加细节描写、感官画面、人物心理或环境烘托，使内容更丰满。
+
+### 待扩写文本
+{{ content }}
+
+### 扩写方向
+{{ direction | default("增加细节描写与感官画面，丰富人物心理与场景氛围") }}
+
+### 本章大纲梗概
+{{ chapter_synopsis | default("（无大纲梗概）") }}
+
+### 人物设定
+{% for ch in characters | default([]) %}
+- {{ ch.name }}（{{ ch.identity }}）：{{ ch.intro | default("") }}
+{% endfor %}
+
+{% if naming_favorites and naming_favorites|length > 0 %}
+### 作者命名库（命名生成器收藏的候选名称）
+{% for t, names in naming_favorites.items() %}
+- {{ t }}：{{ names | join("、") }}
+{% endfor %}
+使用规则：扩写中出现新地点、势力/门派、功法/技能、物品名称时，优先从上面对应类别中选用，保持全书命名一致性。
+{% endif %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 作者补充说明
+{{ user_ideas }}
+
+{% endif %}
+{{ style.inject_style(style_features) }}
+
+{{ de_ai.inject_de_ai() }}
+
+### 扩写要求
+1. 保留原文本的核心情节与信息，不得改变原意
+2. 扩写后内容须 ≥{{ min_length | default(50) }} 字
+3. 新增内容须与原文风格一致，不得突兀
+4. 不得简单堆砌形容词，注重画面感与叙事节奏
+5. 目标扩写至约 {{ target_words | default(0) }} 字（0 表示不限定，按需扩写）
+
+### 输出格式
+```json
+{
+  "content": "扩写后的完整内容",
+  "word_count": 1200
+}
+```
+{% endblock %}

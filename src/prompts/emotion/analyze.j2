@@ -1,0 +1,28 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：情感曲线分析
+
+请分析以下章节的紧张度与情绪波动，用于绘制全书情感曲线。
+
+### 章节信息
+- 第{{ chapter_no | default(1) }}章：{{ chapter_title | default("") }}
+
+### 章节内容
+{{ chapter_content | default("") }}
+
+### 分析要求
+1. tension（紧张度）：衡量本章情节的紧张、冲突、危机程度，0.0 表示平淡，1.0 表示极度紧张
+2. emotion_fluctuation（情绪波动）：衡量本章情绪起伏的剧烈程度，0.0 表示平稳，1.0 表示剧烈波动
+3. 两个指标均保留两位小数，范围 0.0-1.0
+4. 综合考虑战斗、对话、转折、悬念、情感冲突等因素
+
+### 输出格式
+```json
+{
+  "tension": 0.65,
+  "emotion_fluctuation": 0.40,
+  "brief": "本章紧张度与情绪波动的简要说明"
+}
+```
+{% endblock %}

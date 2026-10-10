@@ -1,0 +1,59 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：为每章设计钩子与回收计划
+
+### 故事梗概
+{{ synopsis }}
+
+### 主要人物
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）
+{% endfor %}
+
+{% if naming_favorites and naming_favorites|length > 0 %}
+### 作者命名库（命名生成器收藏的候选名称）
+{% for t, names in naming_favorites.items() %}
+- {{ t }}：{{ names | join("、") }}
+{% endfor %}
+使用规则：钩子与回收设计中涉及的地点、势力/门派、功法/技能、物品名称，优先从上面对应类别中选用，保持全书命名一致性。
+{% endif %}
+
+### 章节规划
+{% for cp in chapter_plan %}
+- 第{{ cp.volume_no }}卷第{{ cp.chapter_no }}章
+{% endfor %}
+
+### 已设计爽点
+{% for c in cool_points %}
+- 第{{ c.volume_no }}卷第{{ c.chapter_no }}章：{{ c.cool_type }} - {{ c.content_desc }}
+{% endfor %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 用户对爽点钩子的思路与想法（请在设计钩子时充分参考，与上述梗概/人物设定/已设计爽点同等重要）
+{{ user_ideas }}
+
+{% endif %}
+### 设计要求
+1. 每章至少1个钩子（悬念/伏笔/未解之谜）
+2. 每个钩子必须有回收计划（在后续章节揭晓/解决）
+3. 钩子回收距离不超过3卷（即设钩卷+3卷内必须回收）
+4. 回收点 (recycle_volume_no, recycle_chapter_no) 必须严格晚于埋钩点 (volume_no, chapter_no)，即按 (卷号, 章号) 字典序比较时回收点大于埋钩点，禁止同章设钩同章回收
+5. 钩子要能引发读者好奇心，驱动继续阅读
+6. 钩子类型：悬念钩、伏笔钩、反转钩、危机钩、情感钩、身份钩
+7. 回收要自然，不能生硬揭晓
+
+### 输出格式
+```json
+{
+  "hooks": [
+    {
+      "volume_no": 1, "chapter_no": 1,
+      "hook_content": "钩子内容描述",
+      "recycle_volume_no": 1, "recycle_chapter_no": 3,
+      "recycle_status": "pending"
+    }
+  ]
+}
+```
+{% endblock %}

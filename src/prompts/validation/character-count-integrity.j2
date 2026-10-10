@@ -1,0 +1,32 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：识别全书正文中出现的额外人物
+
+请识别正文中出现但不在已确认人物清单中的额外人物姓名。
+这些可能是撰写过程中自动生成的临时配角、路人等。
+
+### 已确认人物清单
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）
+{% endfor %}
+
+### 全书章节正文（节选）
+{% for ch in chapters %}
+--- 第{{ ch.volume_no }}卷第{{ ch.chapter_no }}章 ---
+{{ ch.content }}
+{% endfor %}
+
+### 要求
+1. 仅识别人物姓名，不得硬编码任何人物名
+2. 排除已确认人物清单中已有的人物
+3. 排除非人物实体（法宝、门派、地点、技能等）
+4. 仅返回有明确姓名的额外人物
+
+### 输出格式
+```json
+{
+  "extra_characters": ["姓名1", "姓名2"]
+}
+```
+{% endblock %}

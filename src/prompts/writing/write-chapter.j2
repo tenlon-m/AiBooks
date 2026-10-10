@@ -1,0 +1,76 @@
+{% extends "_base/base-system.j2" %}
+{% import "_base/base-style-constraint.j2" as style %}
+{% import "_base/base-de-ai.j2" as de_ai %}
+
+{% block content %}
+## 任务：撰写第{{ volume_no }}卷第{{ chapter_no }}章
+
+### 本章大纲梗概要点（核心情节约束，必须遵循）
+{{ chapter_synopsis_points | default("（无大纲梗概要点）") }}
+
+### 故事梗概（全书基准，必须遵循）
+{{ synopsis }}
+
+### 世界观设定（全书基准，必须遵循）
+{{ worldview }}
+
+### 人物设定（必须保持一致）
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）：{{ ch.intro | default("") }}
+  关系：{{ ch.relation | default("无") }}
+{% endfor %}
+
+{% if naming_favorites and naming_favorites|length > 0 %}
+### 作者命名库（命名生成器收藏的候选名称）
+{% for t, names in naming_favorites.items() %}
+- {{ t }}：{{ names | join("、") }}
+{% endfor %}
+使用规则：本章需要出现新地点、势力/门派、功法/技能、物品名称时，优先从上面对应类别中选用；同一事物再次出现时必须使用完全相同的名称，不得改名。
+{% endif %}
+
+### 本章爽点
+- 类型：{{ cool_point.cool_type }}
+- 内容：{{ cool_point.content_desc }}
+
+### 本章钩子
+- 内容：{{ hook.hook_content }}
+- 计划回收：第{{ hook.recycle_volume_no }}卷第{{ hook.recycle_chapter_no }}章
+
+{% if prev_summary %}
+### 前文摘要
+{{ prev_summary }}
+{% endif %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 用户对撰写的思路与想法（请在撰写本章时充分参考，与上述梗概/世界观/人物设定同等重要）
+{{ user_ideas }}
+
+{% endif %}
+{% if items and items|length > 0 %}
+### 已出现的重要物品（名称和属性必须保持全书一致）
+{% for it in items %}
+- {{ it.name }}（{{ it.item_type }}）：{{ it.key_attrs | default("") }}，归属：{{ it.owner_character | default("无") }}
+{% endfor %}
+{% endif %}
+
+{{ style.inject_style(style_features) }}
+
+{{ de_ai.inject_de_ai() }}
+
+### 撰写要求
+1. 正文 content 字段长度必须不少于 {{ words_per_chapter }} 字（这是硬性要求，宁可多写不可少写，严禁输出过短的章节）
+2. 必须包含上述爽点和钩子
+3. 人物性格、关系、说话方式与前文一致
+4. 物品名称、属性与清单一致，不得改名
+5. 承接前文情节，自然过渡到本章
+6. 章节标题要吸引人，符合网文习惯
+
+### 输出格式
+```json
+{
+  "title": "章节标题",
+  "content": "章节正文内容",
+  "word_count": 3000
+}
+```
+{% endblock %}

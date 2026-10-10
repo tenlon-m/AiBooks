@@ -1,0 +1,30 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：从章节内容中提取重要物品
+
+### 章节内容
+{{ chapter_content }}
+
+{% if existing_items and existing_items|length > 0 %}
+### 已有物品清单（不要重复提取）
+{% for it in existing_items %}
+- {{ it.name }}（{{ it.item_type }}）
+{% endfor %}
+{% endif %}
+
+### 提取要求
+1. 提取本章新出现的重要物品（法宝/武器/丹药/功法/宝物等）
+2. 不提取一次性消耗品或背景道具
+3. 每个物品含：名称、类型、关键属性、归属人物
+4. 名称使用原文出现的名称
+
+### 输出格式
+```json
+{
+  "items": [
+    {"name": "物品名", "item_type": "类型", "key_attrs": "关键属性", "owner_character": "归属人物"}
+  ]
+}
+```
+{% endblock %}

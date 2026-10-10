@@ -1,0 +1,54 @@
+{% extends "_base/base-system.j2" %}
+{% import "_base/base-style-constraint.j2" as style %}
+{% import "_base/base-de-ai.j2" as de_ai %}
+
+{% block content %}
+## 任务：章节间衔接优化
+
+请分析相邻章节的衔接质量，并生成优化建议与衔接段落。
+
+### 前一章节结尾
+{{ prev_ending | default("（无前一章节内容）") }}
+
+### 后一章节开头
+{{ next_start | default("无后一章节内容") }}
+
+### 前一章节梗概
+{{ prev_synopsis | default("") }}
+
+### 后一章节梗概
+{{ next_synopsis | default("") }}
+
+### 人物设定
+{% for ch in characters | default([]) %}
+- {{ ch.name }}（{{ ch.identity }}）：{{ ch.intro | default("") }}
+{% endfor %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 作者补充说明
+{{ user_ideas }}
+
+{% endif %}
+{{ style.inject_style(style_features) }}
+
+{{ de_ai.inject_de_ai() }}
+
+### 分析要求
+1. 评估时间线、空间、人物状态、情节逻辑的连贯性
+2. 指出衔接断裂、跳跃、矛盾之处
+3. 给出具体优化建议
+4. 如需衔接段落，生成自然过渡文本（≥{{ min_length | default(50) }} 字）
+5. 衔接分数 0-100，越高越连贯
+
+### 输出格式
+```json
+{
+  "score": 75,
+  "issues": [
+    {"type": "时间线跳跃", "detail": "前章结尾在夜晚，后章开头突然是正午", "suggestion": "增加时间过渡描写"}
+  ],
+  "transition": "可选的衔接过渡段落，无则留空字符串",
+  "summary": "总体衔接评价"
+}
+```
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "_base/base-system.j2" %}
+{% import "_base/base-de-ai.j2" as de_ai %}
+
+{% block content %}
+## 任务：AI自动润色
+
+### 故事梗概（基准）
+{{ synopsis }}
+
+### 世界观设定（基准）
+{{ worldview }}
+
+### 人物设定
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）
+{% endfor %}
+
+### 用户修改后的内容
+{{ original_content }}
+
+{% if user_ideas and user_ideas.strip() %}
+### 用户对润色的思路与想法（请在润色时充分参考）
+{{ user_ideas }}
+
+{% endif %}
+### 不符合项（需在润色中修正）
+{% for p in problems %}
+- {{ p.check_type }}：{{ p.problem_desc }}
+{% endfor %}
+
+### 润色要求
+1. 修正上述不符合项，使内容符合梗概/世界观/人物设定
+2. 保留用户修改的核心意图和情节走向
+3. 尽量保留用户的文字风格和表达
+4. 仅修正问题部分，不要大改
+
+{{ de_ai.inject_de_ai_compact() }}
+
+### 输出格式
+```json
+{
+  "polished_content": "润色后的完整章节内容",
+  "adjust_notes": [
+    {"position": "第3段", "reason": "力量体系与世界观不符，已调整", "original": "原文片段", "polished": "修改后片段"}
+  ]
+}
+```
+{% endblock %}

@@ -1,0 +1,12 @@
+{
+  "name": "网文风格",
+  "format": ["txt", "docx", "epub", "markdown", "pdf"],
+  "font": "Microsoft YaHei",
+  "font_size": 14,
+  "line_spacing": 1.5,
+  "title_style": "bold_center",
+  "first_indent": true,
+  "header": "",
+  "footer": "",
+  "is_builtin": true
+}

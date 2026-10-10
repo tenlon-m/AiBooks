@@ -1,0 +1,58 @@
+{% extends "_base/base-system.j2" %}
+{% import "_base/base-style-constraint.j2" as style %}
+{% import "_base/base-de-ai.j2" as de_ai %}
+
+{% block content %}
+## 任务：续写章节内容
+
+请基于已有正文自然续写，保持人物性格、叙事节奏与文风一致。
+
+### 已有正文（续写起点）
+{{ content }}
+
+### 本章大纲梗概
+{{ chapter_synopsis | default("（无大纲梗概）") }}
+
+### 故事梗概
+{{ synopsis | default("") }}
+
+### 世界观设定
+{{ worldview | default("") }}
+
+### 人物设定
+{% for ch in characters | default([]) %}
+- {{ ch.name }}（{{ ch.identity }}）：{{ ch.intro | default("") }}
+{% endfor %}
+
+{% if naming_favorites and naming_favorites|length > 0 %}
+### 作者命名库（命名生成器收藏的候选名称）
+{% for t, names in naming_favorites.items() %}
+- {{ t }}：{{ names | join("、") }}
+{% endfor %}
+使用规则：续写中出现新地点、势力/门派、功法/技能、物品名称时，优先从上面对应类别中选用，保持全书命名一致性。
+{% endif %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 作者补充说明
+{{ user_ideas }}
+
+{% endif %}
+{{ style.inject_style(style_features) }}
+
+{{ de_ai.inject_de_ai() }}
+
+### 续写要求
+1. 紧接已有正文最后一句自然延续，不得重复已有内容
+2. 目标续写约 {{ target_words | default(800) }} 字
+3. 保持人称、时态、文风一致
+4. 推进情节，不得原地踏步
+5. 续写内容须 ≥{{ min_length | default(50) }} 字
+
+### 输出格式
+```json
+{
+  "content": "续写的正文内容",
+  "word_count": 800
+}
+```
+{% endblock %}

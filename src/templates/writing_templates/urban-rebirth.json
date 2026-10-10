@@ -1,0 +1,30 @@
+{
+  "name": "都市重生流",
+  "novel_type": "urban_rebirth",
+  "stages": [
+    {"name": "重生期", "volume": 1, "chapters": "1-10", "desc": "主角重生回到过去，带着前世记忆重新开始"},
+    {"name": "布局期", "volume": 1, "chapters": "11-30", "desc": "利用先知优势布局商业/学业，初见成效"},
+    {"name": "崛起期", "volume": 2, "chapters": "31-60", "desc": "事业起飞，建立人脉，与前世仇人初步交锋"},
+    {"name": "巅峰期", "volume": 2, "chapters": "61-90", "desc": "商业帝国成型，感情线推进，化解前世遗憾"},
+    {"name": "守护期", "volume": 3, "chapters": "91-130", "desc": "守护亲人朋友，对抗更大势力"},
+    {"name": "圆满期", "volume": 3, "chapters": "131-150", "desc": "一切尘埃落定，弥补所有遗憾，圆满结局"}
+  ],
+  "cool_rhythm": [
+    {"interval": 3, "type": "先知优势", "desc": "利用前世记忆精准预判，3章一次小爽点"},
+    {"interval": 10, "type": "商业胜利", "desc": "重要商业布局成功，10章一次中爽点"},
+    {"interval": 30, "type": "命运改变", "desc": "成功改变前世重大遗憾，30章一次大爽点"}
+  ],
+  "character_config": {
+    "protagonist": {"personality": "沉稳老练、重情重义", "growth_path": "失败者→布局者→人生赢家"},
+    "supporting": {"count": 5, "roles": ["红颜知己", "商业伙伴", "家人", "前世仇人", "贵人"]},
+    "antagonist": {"count": 3, "escalation": "小人物→商业对手→幕后势力"}
+  },
+  "outline_skeleton": {
+    "volumes": 3,
+    "chapters_per_volume": 50,
+    "words_per_chapter": 2500,
+    "power_system": "商业帝国+人脉网络+前世记忆",
+    "core_conflict": "用前世记忆弥补遗憾，在商业和感情上双线逆袭"
+  },
+  "is_builtin": true
+}

@@ -1,0 +1,27 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：校验爽点是否与梗概基调一致
+
+### 故事梗概
+{{ synopsis }}
+
+### 待校验爽点
+{% for c in cool_points %}
+- 第{{ c.volume_no }}卷第{{ c.chapter_no }}章：{{ c.cool_type }} - {{ c.content_desc }}
+{% endfor %}
+
+### 校验要求
+1. 爽点是否符合梗概的整体基调
+2. 爽点是否与世界观设定矛盾
+3. 爽点是否过于离谱或降智
+
+### 输出格式
+```json
+{
+  "results": [
+    {"volume_no": 1, "chapter_no": 1, "consistent": true, "problem": null}
+  ]
+}
+```
+{% endblock %}

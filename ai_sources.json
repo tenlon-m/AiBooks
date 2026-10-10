@@ -1,0 +1,73 @@
+{
+  "ai_sources": [
+    {
+      "name": "硅基流动-Qwen2.5-7B",
+      "source_type": "online_openai_compatible",
+      "api_endpoint": "https://api.siliconflow.cn/v1",
+      "model_name": "Qwen/Qwen2.5-7B-Instruct",
+      "priority": 99,
+      "weight": 2,
+      "enabled": true,
+      "tags": [],
+      "task_tags": [],
+      "timeout_seconds": 60,
+      "max_retries": 3
+    },
+    {
+      "name": "硅基流动-Qwen2.5-14B",
+      "source_type": "online_openai_compatible",
+      "api_endpoint": "https://api.siliconflow.cn/v1",
+      "model_name": "Qwen/Qwen2.5-14B-Instruct",
+      "priority": 1,
+      "weight": 3,
+      "enabled": true,
+      "tags": [],
+      "task_tags": [
+        "outline",
+        "character",
+        "hook"
+      ],
+      "timeout_seconds": 60,
+      "max_retries": 3
+    },
+    {
+      "name": "硅基流动-Qwen2.5-32B",
+      "source_type": "online_openai_compatible",
+      "api_endpoint": "https://api.siliconflow.cn/v1",
+      "model_name": "Qwen/Qwen2.5-32B-Instruct",
+      "priority": 1,
+      "weight": 4,
+      "enabled": true,
+      "tags": [],
+      "task_tags": [
+        "writing",
+        "validation",
+        "polish"
+      ],
+      "timeout_seconds": 60,
+      "max_retries": 3
+    },
+    {
+      "name": "智谱GLM-4-Flash",
+      "source_type": "online_openai_compatible",
+      "api_endpoint": "https://open.bigmodel.cn/api/paas/v4",
+      "model_name": "glm-4-flash",
+      "priority": 94,
+      "weight": 1,
+      "enabled": true,
+      "tags": [],
+      "task_tags": [],
+      "timeout_seconds": 60,
+      "max_retries": 3
+    }
+  ],
+  "routing_policy": {
+    "policy_id": "default",
+    "strategy": "failover",
+    "manual_source_id": null,
+    "health_check_interval_seconds": 30,
+    "circuit_break_threshold": 3,
+    "circuit_break_cool_seconds": 60,
+    "failover_within_retry": true
+  }
+}

@@ -1,0 +1,63 @@
+{% extends "_base/base-system.j2" %}
+{% import "_base/base-de-ai.j2" as de_ai %}
+
+{% block content %}
+## 任务：场景级大纲细化
+
+请将本章大纲细化为若干场景，每个场景有明确目标、出场人物、关键事件与情绪基调。
+
+### 本章大纲梗概
+{{ chapter_synopsis }}
+
+### 故事梗概
+{{ synopsis | default("") }}
+
+### 世界观设定
+{{ worldview | default("") }}
+
+### 本章出场人物
+{% for ch in characters | default([]) %}
+- {{ ch.name }}（{{ ch.identity }}）：{{ ch.intro | default("") }}
+{% endfor %}
+
+### 本章爽点
+{% for cp in cool_points | default([]) %}
+- {{ cp.cool_type | default(cp.get("cool_type", "")) }}：{{ cp.content_desc | default(cp.get("content_desc", "")) }}
+{% endfor %}
+
+### 本章钩子
+{% for h in hooks | default([]) %}
+- {{ h.hook_content | default(h.get("hook_content", "")) }}
+{% endfor %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 作者补充说明
+{{ user_ideas }}
+
+{% endif %}
+{{ de_ai.inject_de_ai() }}
+
+### 细化要求
+1. 每章拆分为 3-6 个场景，按时间/空间推进排序
+2. 每个场景须有明确目标（推进什么情节/塑造什么人物）
+3. 关键事件须具体可执行，不是空泛描述
+4. 情绪基调须与爽点节奏配合，张弛有度
+5. 场景字数估算合计约 {{ target_words | default(3000) }} 字
+6. 每个场景的 key_event 须 ≥{{ min_length | default(50) }} 字
+
+### 输出格式
+```json
+{
+  "scenes": [
+    {
+      "scene_order": 1,
+      "goal": "场景目标",
+      "characters": "出场人物名，逗号分隔",
+      "key_event": "关键事件具体描述",
+      "mood": "紧张",
+      "est_words": 800
+    }
+  ]
+}
+```
+{% endblock %}

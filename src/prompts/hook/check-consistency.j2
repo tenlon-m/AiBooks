@@ -1,0 +1,68 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：校验爽点钩子与「故事梗概 / 世界观设定 / 人物设定 / 大纲梗概」的一致性
+
+### 故事梗概
+{{ synopsis }}
+
+### 世界观设定
+{{ worldview }}
+
+### 已确认人物清单
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）—— {{ ch.intro or "无简介" }}
+{% endfor %}
+
+### 大纲各章梗概要点
+{% for oc in outline_chapters %}
+- 第{{ oc.volume_no }}卷第{{ oc.chapter_no }}章：{{ oc.synopsis_points }}
+{% endfor %}
+
+### 待校验爽点
+{% for cp in cool_points %}
+- 第{{ cp.volume_no }}卷第{{ cp.chapter_no }}章 [{{ cp.cool_type }}] {{ cp.content_desc }}
+{% endfor %}
+
+### 待校验钩子
+{% for h in hooks %}
+- 第{{ h.volume_no }}卷第{{ h.chapter_no }}章：{{ h.hook_content }}（计划回收于第{{ h.recycle_volume_no }}卷第{{ h.recycle_chapter_no }}章，状态：{{ h.recycle_status }}）
+{% endfor %}
+
+### 校验维度（逐条核对，不要漏项）
+1. 爽点与大纲梗概匹配度：每章爽点是否与该章大纲梗概要点的情节走向一致，有无跑题或与梗概矛盾
+2. 钩子回收闭环性：每个钩子是否有明确的回收计划且回收章节在全书范围内，有无悬空钩子（设了钩子但无回收计划）
+3. 爽点钩子涉及人物是否在正式人物清单内：从爽点描述和钩子内容中提取的人物姓名是否均在已确认人物清单中，有无凭空出现未登记人物
+4. 爽点是否符合故事梗概基调：爽点类型与情节是否与故事梗概的整体基调（热血/悬疑/言情等）一致，有无与基调冲突的爽点
+5. 钩子跨卷回收距离是否超过 3 卷上限：每个钩子的 |recycle_volume_no - volume_no| 是否 ≤ 3，超过则为严重问题
+6. 钩子回收顺序：每个钩子的回收点 (recycle_volume_no, recycle_chapter_no) 是否严格晚于埋钩点 (volume_no, chapter_no)，回收点早于或等于埋钩点为严重问题
+7. 钩子回收超出范围：回收点卷号或章号是否超出全书实际卷数和每卷章数，超出为严重问题
+8. 钩子回收过于集中：多个钩子的回收点是否集中在同一章节，同一回收点超过阈值（max(3, 钩子总数/5)）为一般问题
+
+### 输出格式
+```json
+{
+  "score": 85,
+  "summary": "总体评价（100字以内）",
+  "issues": [
+    {
+      "level": "严重|一般|轻微",
+      "volume_no": 1,
+      "chapter_no": 3,
+      "type": "爽点偏离梗概|钩子未回收|人物未登记|基调冲突|回收距离超限|回收顺序错误|回收超出范围|回收过于集中|其他",
+      "detail": "问题描述（指明具体章节与位置）",
+      "suggestion": "可执行的修改建议"
+    }
+  ]
+}
+```
+若无问题，issues 返回空数组；禁止编造不存在的问题。
+{% if garbled_config_enabled %}
+### 字符/格式检测维度
+除上述校验维度外，还需检测以下问题：
+- **字符乱码**（type="字符乱码"）：控制字符、零宽字符、Unicode替换字符(U+FFFD)、私用区字符、乱码符号序列
+- **格式错乱**（type="格式错乱"）：连续空行超过上限、行首行尾冗余空白、重复标点、全角空格滥用、制表符、连续空格
+重点检测字段：`content_desc`（爽点描述）、`hook_content`（钩子内容）
+检出时在 issues 中新增对应条目，level 按影响程度判定（字符乱码≥"一般"，格式错乱="轻微"）。
+{% endif %}
+{% endblock %}

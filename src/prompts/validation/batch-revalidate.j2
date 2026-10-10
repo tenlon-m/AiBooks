@@ -1,0 +1,28 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：批量再校验汇总
+
+### 逐章再校验结果
+{% for r in per_chapter_results %}
+### 第{{ r.volume_no }}卷第{{ r.chapter_no }}章
+{% for item in r.items %}
+- {{ item.check_type }}：{{ item.result }}{% if item.problem_desc %}（{{ item.problem_desc }}）{% endif %}
+{% endfor %}
+{% endfor %}
+
+### 汇总要求
+1. 全书人物变化汇总（身份/关系/状态/出场退场增删改）
+2. 全书物品变化汇总（新增/消失/属性改/归属转移）
+3. 物品全书一致性校验（命名/类型是否统一）
+4. 钩子回收不破坏校验
+
+### 输出格式
+```json
+{
+  "global_character_change": {"result": "pass", "problem_desc": null},
+  "global_item_change": {"result": "fail", "problem_desc": "物品X在第3章消失但第5章仍引用"},
+  "global_item_consistency": {"result": "pass", "problem_desc": null}
+}
+```
+{% endblock %}

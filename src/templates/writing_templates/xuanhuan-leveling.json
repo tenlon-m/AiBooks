@@ -1,0 +1,30 @@
+{
+  "name": "玄幻升级流",
+  "novel_type": "xuanhuan",
+  "stages": [
+    {"name": "觉醒期", "volume": 1, "chapters": "1-10", "desc": "主角平凡出身，偶得机缘觉醒天赋，初露锋芒"},
+    {"name": "修炼期", "volume": 1, "chapters": "11-30", "desc": "进入修炼体系，突破初阶，遭遇第一批对手"},
+    {"name": "宗门期", "volume": 2, "chapters": "31-60", "desc": "加入宗门/学院，结交盟友，卷入势力争斗"},
+    {"name": "历练期", "volume": 2, "chapters": "61-90", "desc": "外出历练，获得重宝，实力大涨"},
+    {"name": "争霸期", "volume": 3, "chapters": "91-130", "desc": "参与大比/争锋，名震一方，树敌增多"},
+    {"name": "渡劫期", "volume": 3, "chapters": "131-160", "desc": "突破瓶颈，渡劫飞升，揭开更大世界"}
+  ],
+  "cool_rhythm": [
+    {"interval": 3, "type": "打脸", "desc": "被轻视后以实力反击，3章一次小爽点"},
+    {"interval": 10, "type": "突破", "desc": "境界突破，10章一次中爽点"},
+    {"interval": 30, "type": "大事件", "desc": "大势力交锋/重宝出世，30章一次大爽点"}
+  ],
+  "character_config": {
+    "protagonist": {"personality": "坚韧隐忍、恩怨分明", "growth_path": "废柴→天才→强者"},
+    "supporting": {"count": 5, "roles": ["挚友", "红颜", "师长", "宿敌", "神秘人"]},
+    "antagonist": {"count": 3, "escalation": "小恶霸→宗门天才→域外天魔"}
+  },
+  "outline_skeleton": {
+    "volumes": 3,
+    "chapters_per_volume": 50,
+    "words_per_chapter": 3000,
+    "power_system": "炼气→筑基→金丹→元婴→化神→渡劫",
+    "core_conflict": "主角从底层崛起，逐步挑战更高层次的势力与规则"
+  },
+  "is_builtin": true
+}

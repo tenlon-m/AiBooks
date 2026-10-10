@@ -1,0 +1,30 @@
+{
+  "name": "穿越种田流",
+  "novel_type": "time_travel_farming",
+  "stages": [
+    {"name": "穿越期", "volume": 1, "chapters": "1-10", "desc": "主角穿越到古代/异世，适应新环境"},
+    {"name": "立足期", "volume": 1, "chapters": "11-30", "desc": "从一穷二白开始，利用现代知识改善生活"},
+    {"name": "发展期", "volume": 2, "chapters": "31-60", "desc": "开展种植/养殖/手工业，初具规模"},
+    {"name": "扩张期", "volume": 2, "chapters": "61-90", "desc": "扩大产业，建立品牌，与地方势力合作"},
+    {"name": "鼎盛期", "volume": 3, "chapters": "91-130", "desc": "产业遍布，社会地位提升，家庭美满"},
+    {"name": "传承期", "volume": 3, "chapters": "131-150", "desc": "事业传承，造福一方，安居乐业"}
+  ],
+  "cool_rhythm": [
+    {"interval": 3, "type": "小发明", "desc": "现代知识小应用改善生活，3章一次小爽点"},
+    {"interval": 10, "type": "丰收", "desc": "产业大丰收/突破性进展，10章一次中爽点"},
+    {"interval": 30, "type": "地位提升", "desc": "社会地位/财富量级跃升，30章一次大爽点"}
+  ],
+  "character_config": {
+    "protagonist": {"personality": "勤劳智慧、踏实肯干", "growth_path": "穿越者→小农户→一方富豪"},
+    "supporting": {"count": 5, "roles": ["配偶", "邻里", "合作伙伴", "竞争对手", "官府中人"]},
+    "antagonist": {"count": 2, "escalation": "村中恶霸→地方豪绅"}
+  },
+  "outline_skeleton": {
+    "volumes": 3,
+    "chapters_per_volume": 50,
+    "words_per_chapter": 2500,
+    "power_system": "现代知识+勤劳双手+人脉经营",
+    "core_conflict": "在古代白手起家，用现代知识创造美好生活"
+  },
+  "is_builtin": true
+}

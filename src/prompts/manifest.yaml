@@ -1,0 +1,315 @@
+# 提示词模板清单 - 记录每个模板的元数据与版本
+templates:
+  - module: _base
+    scene: base-system
+    version: 1.0.0
+    enabled: true
+    description: 系统角色基座模板
+    file: _base/base-system.j2
+
+  - module: _base
+    scene: base-style-constraint
+    version: 1.0.0
+    enabled: true
+    description: 风格约束注入宏
+    file: _base/base-style-constraint.j2
+
+  - module: _base
+    scene: base-de-ai
+    version: 1.0.0
+    enabled: true
+    description: 去AI化约束宏
+    file: _base/base-de-ai.j2
+
+  - module: character
+    scene: extract-main
+    version: 1.0.0
+    enabled: true
+    description: 从梗概/世界观提取主角
+    file: character/extract-main.j2
+
+  - module: character
+    scene: extract-supporting
+    version: 1.0.0
+    enabled: true
+    description: 从梗概/世界观提取配角
+    file: character/extract-supporting.j2
+
+  - module: character
+    scene: generate-supporting
+    version: 1.0.0
+    enabled: true
+    description: AI生成配角
+    file: character/generate-supporting.j2
+
+  - module: character
+    scene: auto-generate-supporting
+    version: 1.0.0
+    enabled: true
+    description: 剧情需要时自动生成配角（撰写/大纲/钩子三处触发）
+    file: character/auto-generate-supporting.j2
+
+  - module: character
+    scene: import-from-file
+    version: 1.0.0
+    enabled: true
+    description: 从设定文档识别人物及关系并导入
+    file: character/import-from-file.j2
+
+  - module: outline
+    scene: generate-outline
+    version: 1.0.0
+    enabled: true
+    description: 根据梗概/世界观/已确认人物生成全书大纲
+    file: outline/generate-outline.j2
+
+  - module: outline
+    scene: generate-outline-batch
+    version: 1.0.0
+    enabled: true
+    description: 分批生成大纲（每批若干章，携带前文已生成章节作为衔接上下文，避免单次超时）
+    file: outline/generate-outline-batch.j2
+
+  - module: outline
+    scene: check-consistency
+    version: 1.0.0
+    enabled: true
+    description: 分批校验大纲片段与梗概/世界观/人物设定的一致性，输出问题清单
+    file: outline/check-consistency.j2
+
+  - module: outline
+    scene: fill-appearing
+    version: 1.0.0
+    enabled: true
+    description: 出场人物智能填充（含代词/简称/别名识别）
+    file: outline/fill-appearing.j2
+
+  - module: outline
+    scene: repair-outline
+    version: 1.0.0
+    enabled: true
+    description: 大纲 AI 一键修复（问题驱动，逐章修复梗概要点与出场人物）
+    file: outline/repair-outline.j2
+
+  - module: hook
+    scene: repair-hook
+    version: 1.0.0
+    enabled: true
+    description: 爽点钩子 AI 一键修复（问题驱动，逐章修复爽点与钩子）
+    file: hook/repair-hook.j2
+
+  - module: validation
+    scene: character-count-integrity
+    version: 1.0.0
+    enabled: true
+    description: 全书正文人物识别（姓名匹配 + AI 识别补充）
+    file: validation/character-count-integrity.j2
+
+  - module: hook
+    scene: design-cool-points
+    version: 1.0.0
+    enabled: true
+    description: 设计每章爽点
+    file: hook/design-cool-points.j2
+
+  - module: hook
+    scene: design-hooks
+    version: 1.0.0
+    enabled: true
+    description: 设计钩子与回收计划
+    file: hook/design-hooks.j2
+
+  - module: hook
+    scene: check-cool-tone
+    version: 1.0.0
+    enabled: true
+    description: 爽点与梗概基调校验
+    file: hook/check-cool-tone.j2
+
+  - module: hook
+    scene: generate-chapter
+    version: 1.0.0
+    enabled: true
+    description: 单章爽点与钩子设计
+    file: hook/generate-chapter.j2
+
+  - module: hook
+    scene: check-consistency
+    version: 1.0.0
+    enabled: true
+    description: 爽点钩子一致性校验
+    file: hook/check-consistency.j2
+
+  - module: writing
+    scene: write-chapter
+    version: 1.0.0
+    enabled: true
+    description: 单章生成主模板
+    file: writing/write-chapter.j2
+    source_type_overrides:
+      local_ollama: writing/write-chapter-ollama.j2
+
+  - module: writing
+    scene: summary-prev
+    version: 1.0.0
+    enabled: true
+    description: 前文摘要压缩
+    file: writing/summary-prev.j2
+
+  - module: writing
+    scene: extract-items
+    version: 1.0.0
+    enabled: true
+    description: 物品清单提取
+    file: writing/extract-items.j2
+
+  - module: writing
+    scene: check-consistency
+    version: 1.0.0
+    enabled: true
+    description: 撰写一致性校验
+    file: writing/check-consistency.j2
+
+  - module: writing
+    scene: repair-writing
+    version: 1.0.0
+    enabled: true
+    description: 撰写一致性AI修复
+    file: writing/repair-writing.j2
+
+  - module: writing
+    scene: supplement
+    version: 1.0.0
+    enabled: true
+    description: 字数补写（在原章基础上扩写补充至目标字数）
+    file: writing/supplement.j2
+
+  - module: chapter
+    scene: check-consistency
+    version: 1.0.0
+    enabled: true
+    description: 章节独立一致性校验
+    file: chapter/check-consistency.j2
+
+  - module: validation
+    scene: full-book
+    version: 1.0.0
+    enabled: true
+    description: 全书7维校验
+    file: validation/full-book.j2
+
+  - module: validation
+    scene: single-chapter
+    version: 1.0.0
+    enabled: true
+    description: 单章再校验4维
+    file: validation/single-chapter.j2
+
+  - module: validation
+    scene: batch-revalidate
+    version: 1.0.0
+    enabled: true
+    description: 批量再校验汇总
+    file: validation/batch-revalidate.j2
+
+  - module: polish
+    scene: auto-polish
+    version: 1.0.0
+    enabled: true
+    description: AI自动润色
+    file: polish/auto-polish.j2
+
+  - module: polish
+    scene: explain-adjust
+    version: 1.0.0
+    enabled: true
+    description: 调整说明生成
+    file: polish/explain-adjust.j2
+
+  - module: style
+    scene: extract-features
+    version: 1.0.0
+    enabled: true
+    description: 6维风格特征提取
+    file: style/extract-features.j2
+
+  - module: style
+    scene: apply-style
+    version: 1.0.0
+    enabled: true
+    description: 风格约束注入
+    file: style/apply-style.j2
+  - module: writing
+    scene: chat
+    version: 1.0.0
+    enabled: true
+    description: AI对话式写作辅助
+    file: writing/chat.j2
+
+  - module: writing
+    scene: continue
+    version: 1.0.0
+    enabled: true
+    description: 续写章节内容
+    file: writing/continue.j2
+
+  - module: writing
+    scene: expand
+    version: 1.0.0
+    enabled: true
+    description: 扩写指定文本
+    file: writing/expand.j2
+
+  - module: writing
+    scene: shrink
+    version: 1.0.0
+    enabled: true
+    description: 缩写指定文本
+    file: writing/shrink.j2
+
+  - module: writing
+    scene: connection
+    version: 1.0.0
+    enabled: true
+    description: 章节间衔接优化
+    file: writing/connection.j2
+
+  - module: outline
+    scene: scene-split
+    version: 1.0.0
+    enabled: true
+    description: 场景级大纲细化
+    file: outline/scene-split.j2
+
+  - module: naming
+    scene: generate
+    version: 1.0.0
+    enabled: true
+    description: 命名生成器
+    file: naming/generate.j2
+  - module: emotion
+    scene: analyze
+    version: 1.0.0
+    enabled: true
+    description: 情感曲线分析（紧张度与情绪波动）
+    file: emotion/analyze.j2
+
+  - module: summary
+    scene: chapter
+    version: 1.0.0
+    enabled: true
+    description: 章节摘要自动生成（100-200字）
+    file: summary/chapter.j2
+  - module: creation
+    scene: polish-synopsis
+    version: 1.0.0
+    enabled: true
+    description: 故事梗概AI润色（扩展简单思路为完整梗概）
+    file: creation/polish-synopsis.j2
+
+  - module: creation
+    scene: polish-worldview
+    version: 1.0.0
+    enabled: true
+    description: 世界观设定AI润色（扩展简单思路为完整世界观）
+    file: creation/polish-worldview.j2

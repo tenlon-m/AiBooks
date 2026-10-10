@@ -1,0 +1,17 @@
+{# 风格约束注入宏 - 被各需要风格约束的场景复用 #}
+{% macro inject_style(features) %}
+{% if features and features|length > 0 %}
+## 风格约束
+请严格模仿以下风格特征进行创作：
+{% for feature in features %}
+- {{ feature.dimension_label | default(feature.dimension) }}：{{ feature.description }}
+{% endfor %}
+{% else %}
+## 风格约束
+采用默认网文风格：节奏明快、对话自然、场景描写适度，避免过度华丽辞藻。
+{% endif %}
+{% endmacro %}
+
+{% macro inject_style_compact(features) %}
+{% if features and features|length > 0 %}风格：{% for f in features %}{{ f.dimension }}={{ f.description }};{% endfor %}{% endif %}
+{% endmacro %}

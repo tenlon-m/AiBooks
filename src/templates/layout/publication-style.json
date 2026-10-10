@@ -1,0 +1,12 @@
+{
+  "name": "出版风格",
+  "format": ["txt", "docx", "epub", "markdown", "pdf"],
+  "font": "SimSun",
+  "font_size": 12,
+  "line_spacing": 1.8,
+  "title_style": "bold_center",
+  "first_indent": true,
+  "header": "{book_title}",
+  "footer": "{page_number}",
+  "is_builtin": true
+}

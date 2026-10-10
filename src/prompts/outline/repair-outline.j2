@@ -1,0 +1,54 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：根据校验问题修复章节大纲
+
+请根据校验发现的问题清单，针对性修复本章的梗概要点与出场人物。
+不得无差别重写整章，仅针对问题位置做最小化修复。
+
+### 故事梗概
+{{ synopsis }}
+
+### 世界观设定
+{{ worldview }}
+
+### 已确认人物清单
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）：{{ ch.intro or "无简介" }}
+{% endfor %}
+
+### 待修复章节
+- 第{{ chapter.chapter_no }}章《{{ chapter.chapter_name }}》
+- 当前梗概要点：{{ chapter.synopsis_points }}
+- 当前出场人物：{{ chapter.characters_appearing or "（未填写）" }}
+
+### 本章校验问题
+{% for issue in chapter_issues %}
+- 【{{ issue.level }}】{{ issue.type }}：{{ issue.detail }}
+  建议：{{ issue.suggestion }}
+{% endfor %}
+
+### 修复要求
+1. 仅针对上述问题修复，不得无差别重写整章梗概
+2. 修复后梗概要点须 ≥ 50 字
+3. 出场人物仅从已确认人物清单中选取，不得创造清单外人物
+4. 针对历史题材须按既定历史节点顺序调整，禁止跨历史阶段混搭人物与情节
+5. 不得硬编码任何人物/地点/情节
+6. 不得改动正文、世界观、人物清单
+
+### 输出格式
+```json
+{
+  "synopsis_points_new": "修复后的梗概要点",
+  "characters_appearing_new": "张三、李四",
+  "adjust_notes": [
+    {
+      "position": "修改位置说明",
+      "reason": "修改原因",
+      "original": "原文片段",
+      "polished": "修改后片段"
+    }
+  ]
+}
+```
+{% endblock %}

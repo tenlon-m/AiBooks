@@ -1,0 +1,56 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：在原章节基础上扩写补充至目标字数
+
+### 故事梗概
+{{ synopsis }}
+
+### 世界观设定
+{{ worldview }}
+
+### 已确认人物清单
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）—— {{ ch.intro or "无简介" }}
+{% endfor %}
+
+### 大纲梗概要点
+{% for oc in outline_chapters %}
+- 第{{ oc.volume_no }}卷第{{ oc.chapter_no }}章：{{ oc.synopsis_points }}
+{% endfor %}
+
+### 风格库特征
+{% for f in style_features %}
+- {{ f.dimension }}：{{ f.description }}
+{% endfor %}
+
+### 本章信息
+- 第{{ volume_no }}卷第{{ chapter_no }}章
+- 本章大纲梗概要点：{{ chapter_synopsis }}
+- 当前字数：{{ current_words }} 字
+- 目标字数：{{ target_words }} 字
+- 至少需补充：{{ min_add_words }} 字
+
+### 本章原文
+{{ chapter_content }}
+
+### 前一章末尾（衔接参考）
+{{ prev_chapter_tail | default("（无前章）") }}
+
+### 补写约束
+1. 保留并扩写原文，不得丢失任何关键情节、人物对话、场景描写与伏笔
+2. 只做增量细节补充与剧情推进，禁止删除或大幅改写既有段落
+3. 不得引入新人物、新地点、新势力、新功法、新物品
+4. 补写后正文字数须在 {{ target_words }} ~ {{ (target_words * 1.1)|int }} 字之间，严禁超过 {{ (target_words * 1.2)|int }} 字
+5. 与前一章末尾保持衔接连贯，符合大纲梗概要点与风格库特征
+6. 涉及人物仅从已确认清单选取，禁止硬编码任何未在清单中的人物/地点/势力/功法/物品/情节
+7. 不得改动世界观/人物清单/大纲/其他章节
+8. 针对历史题材须按既定历史节点顺序推进，禁止跨历史阶段混搭人物与情节
+
+### 输出格式
+```json
+{
+  "content": "补写后的本章完整正文"
+}
+```
+{% endblock %}

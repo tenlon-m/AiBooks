@@ -1,0 +1,91 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：分批规划全书大纲（本次仅生成第 {{ batch_volume_no }} 卷第 {{ batch_chapter_start }}-{{ batch_chapter_start + batch_chapter_count - 1 }} 章）
+
+### 故事梗概
+{{ synopsis }}
+
+### 世界观设定
+{{ worldview }}
+
+### 已确认人物清单
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）—— {{ ch.intro or "无简介" }}
+{% endfor %}
+
+{% if naming_favorites and naming_favorites|length > 0 %}
+### 作者命名库（命名生成器收藏的候选名称，作者钦定的命名素材）
+{% for t, names in naming_favorites.items() %}
+- {{ t }}：{{ names | join("、") }}
+{% endfor %}
+使用规则：本批章节涉及的地点、势力/门派、功法/技能、物品等名称，优先从上面对应类别中选用（按需取用即可，不必全用）；若均不合适可自行命名，但须符合世界观且与前文已生成章节保持统一。
+{% endif %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 用户对大纲的思路与想法（铁律，必须严格遵守）
+{{ user_ideas }}
+
+**重要约束**：上述思路通常按卷描述了各卷的主题与情节范围。本批生成的是第 {{ batch_volume_no }} 卷，请严格只写该卷对应的内容，禁止提前引入后续卷的事件/人物/势力，禁止回退到前序卷已完成的情节。若思路中明确某事物在某卷才出现，则不得在更早的卷中提前提及或安排其出场。
+
+{% endif %}
+### 全书创作参数
+- 全书共 {{ volume_count }} 卷，每卷 {{ chapters_per_volume }} 章，共 {{ total_chapter_count }} 章
+- 每章字数：{{ words_per_chapter }} 字
+- 当前进度：全书已生成 {{ generated_chapter_count }} / {{ total_chapter_count }} 章，本批需生成 {{ batch_chapter_count }} 章
+
+{% if all_volume_names and all_volume_names|length > 0 %}
+### 全书各卷卷名与主题（已确定的卷结构，本批须与之衔接）
+{% for vol_no, vol_name in all_volume_names.items() %}
+- 第{{ vol_no }}卷：{{ vol_name }}{% if vol_no == batch_volume_no %}（← 本批所在卷）{% endif %}
+{% endfor %}
+
+{% endif %}
+### 前文已生成章节（仅供衔接参考，禁止重复生成）
+{% if prev_chapters %}
+{% for pc in prev_chapters %}
+- 第{{ pc.volume_no }}卷第{{ pc.chapter_no }}章 {{ pc.chapter_name }}：{{ pc.synopsis_points }}
+{% endfor %}
+{% else %}
+（无，本批为全书开篇）
+{% endif %}
+
+### 本次生成要求
+1. 只生成 {{ batch_chapter_count }} 章，章节号严格为 {{ batch_chapter_start }} 到 {{ batch_chapter_start + batch_chapter_count - 1 }}，不得多生成、不得少生成
+2. 本批章节属于第 {{ batch_volume_no }} 卷；{% if batch_volume_name %}该卷卷名已确定为「{{ batch_volume_name }}」，请保持一致{% else %}本批为第 {{ batch_volume_no }} 卷开篇，请同时给出该卷卷名（1-50字）{% endif %}
+3. 每章须有章节名（1-50字）与该章故事梗概要点，梗概要点 {{ synopsis_min_chars | default(100) }}-{{ synopsis_max_chars | default(300) }} 字
+4. 章节名体现该章核心事件，梗概要点具体描述该章核心事件与情节推进
+
+### 内容一致性硬性要求（逐条自检，必须全部满足）
+A. 贴合梗概主线：本批每章都要推进「故事梗概」中的主线，禁止另起主线、偏离主线或提前透支结局
+B. 世界观落地：必须复用「世界观设定」中的专有名词、势力、地点、规则（名称须与设定完全一致），禁止自创与之冲突的设定
+C. 主角贯穿：身份标注为主角/核心人物的角色须在本批出场或推动情节，不得整批缺席，主角行动线不得中断
+D. 配角出场有因有果：配角首次出场必须有明确引入事件（因何事、由谁引入），出场后必须承担具体作用；禁止凭空出现、凭空消失、无交代退场
+E. 出场人物登记（铁律，违反则大纲不合格）：每章 characters_appearing 不得为空字符串、不得省略。必须从「已确认人物清单」中选出本章实际出场或推动情节的人物姓名填入，多人用「、」分隔。即使本章只有一人出场也必须填写该人姓名。请在生成每章后立即自检此字段是否已填写。
+F. 衔接自然：本批第 1 章须紧接着前文已生成章节推进，不得重复已发生事件，也不得跳跃遗漏关键过渡
+G. 历史节点与时间先后（非架空题材铁律，违反则大纲不合格）：先判断本书题材——
+   - 若为纯架空/虚构世界，无历史约束；
+   - 若侧根于真实历史、神话传说或约定成俗的故事体系（如封神榜、洪荒、西游、三国、隋唐等），则全书时间线、主要事件与人物出场必须严格遵循该故事体系公认的发生先后顺序。
+   具体规则：
+   1) 人物出场顺序必须符合其历史/传说时间节点，已故或尚未登场的人物不得提前出场，本时代已消亡的人物不得复活出场；
+   2) 重大历史事件（如封神大战、朝代更迭、某大能成道等）发生先后不得颠倒，不能把后期事件写到前期，也不能把前期事件拖到后期；
+   3) 各卷/各章节串联后，全书须呈现一条自洽的时间线，不得出现前一卷还在前朝、后一卷就跳到后世再跳回前朝的时间倒流或阶段跳变；
+   4) 若用户已明确写作基点（如"从封神大战前开始"），首个节点须从该基点出发，其后按顺序推进；
+   5) **卷级隔离**：若用户思路或前文已生成章节表明某事件/势力/种族在第N卷才出现，则第1至N-1卷的章节中不得提前安排该事件发生、该势力登场或该种族崛起。例如若人族在第三卷才出现，则第一、二卷的章节名和梗概中不得出现"人族崛起""人族"等字样。
+
+### 输出格式
+```json
+{
+  "volume_no": {{ batch_volume_no }},
+  "volume_name": "本卷卷名（该卷已确定时原样返回，否则给出新卷名）",
+  "chapters": [
+    {
+      "chapter_no": {{ batch_chapter_start }},
+      "chapter_name": "章节名",
+      "synopsis_points": "该章故事梗概要点（{{ synopsis_min_chars | default(100) }}-{{ synopsis_max_chars | default(300) }}字）",
+      "characters_appearing": "本章出场人物，用「、」分隔"
+    }
+  ]
+}
+```
+{% endblock %}

@@ -1,0 +1,30 @@
+{
+  "name": "系统流",
+  "novel_type": "system_flow",
+  "stages": [
+    {"name": "绑定期", "volume": 1, "chapters": "1-10", "desc": "主角获得系统，了解基本功能，完成新手任务"},
+    {"name": "成长期", "volume": 1, "chapters": "11-30", "desc": "通过系统任务获取奖励，实力快速提升"},
+    {"name": "探索期", "volume": 2, "chapters": "31-60", "desc": "系统解锁更多功能，探索更大世界"},
+    {"name": "竞争期", "volume": 2, "chapters": "61-90", "desc": "与其他系统持有者/天才竞争，排名上升"},
+    {"name": "揭秘期", "volume": 3, "chapters": "91-130", "desc": "探索系统起源，揭开世界真相"},
+    {"name": "超脱期", "volume": 3, "chapters": "131-160", "desc": "突破系统限制，成为最强存在"}
+  ],
+  "cool_rhythm": [
+    {"interval": 3, "type": "任务奖励", "desc": "完成系统任务获得奖励，3章一次小爽点"},
+    {"interval": 10, "type": "功能解锁", "desc": "系统解锁新功能/大奖励，10章一次中爽点"},
+    {"interval": 30, "type": "排名跃升", "desc": "排名/实力大幅跃升，30章一次大爽点"}
+  ],
+  "character_config": {
+    "protagonist": {"personality": "理性务实、善于利用规则", "growth_path": "普通人→系统宿主→最强存在"},
+    "supporting": {"count": 5, "roles": ["系统AI", "队友", "红颜", "对手", "神秘人物"]},
+    "antagonist": {"count": 3, "escalation": "同级竞争者→其他系统宿主→系统创造者"}
+  },
+  "outline_skeleton": {
+    "volumes": 3,
+    "chapters_per_volume": 50,
+    "words_per_chapter": 3000,
+    "power_system": "系统任务+属性面板+技能商店+排名榜",
+    "core_conflict": "利用系统不断变强，最终探索系统真相并超脱"
+  },
+  "is_builtin": true
+}

@@ -1,0 +1,50 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：命名生成器
+
+请根据给定类型与上下文，生成符合世界观与文风的命名候选。
+
+### 命名类型
+{{ name_type }}
+
+### 命名数量
+{{ count | default(10) }} 个候选
+
+### 世界观设定
+{{ worldview | default("") }}
+
+### 故事梗概
+{{ synopsis | default("") }}
+
+### 上下文信息
+{{ context | default("") }}
+
+### 已有命名（避免重复）
+{% for n in existing_names | default([]) %}
+- {{ n }}
+{% endfor %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 作者补充说明
+{{ user_ideas }}
+
+{% endif %}
+
+### 命名要求
+1. 命名须符合世界观设定与文风
+2. 不得与已有命名重复或过度相似
+3. 命名须易读易记，避免生僻字堆砌
+4. 人物命名须符合其身份与性格暗示
+5. 每个命名须 ≥2 字
+
+### 输出格式
+```json
+{
+  "names": [
+    {"value": "命名1", "reason": "命名理由简述"},
+    {"value": "命名2", "reason": "命名理由简述"}
+  ]
+}
+```
+{% endblock %}

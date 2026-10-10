@@ -1,0 +1,61 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：根据校验问题清单修复本章正文内容
+
+### 故事梗概
+{{ synopsis }}
+
+### 世界观设定
+{{ worldview }}
+
+### 已确认人物清单
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）—— {{ ch.intro or "无简介" }}
+{% endfor %}
+
+### 大纲梗概要点
+{% for oc in outline_chapters %}
+- 第{{ oc.volume_no }}卷第{{ oc.chapter_no }}章：{{ oc.synopsis_points }}
+{% endfor %}
+
+### 风格库特征
+{% for f in style_features %}
+- {{ f.dimension }}：{{ f.description }}
+{% endfor %}
+
+### 本章信息
+- 第{{ volume_no }}卷第{{ chapter_no }}章
+- 本章大纲梗概要点：{{ chapter_synopsis }}
+
+### 本章原文
+{{ chapter_content }}
+
+### 前一章末尾（衔接参考）
+{{ prev_chapter_tail | default("（无前章）") }}
+
+### 本章校验问题清单
+{% for issue in chapter_issues %}
+- 【{{ issue.level }}】{{ issue.type }}：{{ issue.detail }}（建议：{{ issue.suggestion }}）
+{% endfor %}
+
+### 修复要求
+1. 仅针对上述问题清单中涉及的问题进行修复，不得无差别重写未涉及问题的内容
+2. 修复后章节内容长度须 ≥ {{ (chapter_content | length * 0.8) | int }} 字（原文 {{ chapter_content | length }} 字的 80%），不得大幅删减
+3. 保持原有段落结构与叙事视角，仅修改问题涉及的部分
+4. 涉及人物仅从已确认清单选取，禁止硬编码任何人物/地点/势力/功法/物品/情节
+5. 修复后内容须与大纲梗概要点一致，符合风格库特征
+6. 不得改动世界观/人物清单/大纲/其他章节
+7. 针对历史题材须按既定历史节点顺序调整，禁止跨历史阶段混搭人物与情节
+8. 与前一章末尾保持衔接连贯
+
+### 输出格式
+```json
+{
+  "content_new": "修复后的本章完整正文",
+  "adjust_notes": [
+    {"position": "修改位置", "reason": "修改原因", "original": "原文片段", "polished": "修改后片段"}
+  ]
+}
+```
+{% endblock %}

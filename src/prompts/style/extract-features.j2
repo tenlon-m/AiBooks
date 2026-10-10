@@ -1,0 +1,35 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：从语料中提取6维风格特征
+
+### 投喂语料
+{{ corpus_text }}
+
+{% if user_ideas and user_ideas.strip() %}
+### 用户对风格库的思路与想法（请在提取特征时充分参考）
+{{ user_ideas }}
+
+{% endif %}
+### 提取维度（6维）
+1. **叙事视角**：第一人称/第三人称/全知视角等，以及视角切换习惯
+2. **句式偏好**：长短句比例、句式结构特点、是否善用短句制造节奏
+3. **用词习惯**：用词风格（古风/现代/口语/书面）、高频词汇、特色表达
+4. **节奏特征**：叙事节奏（快/慢/张弛）、情节推进速度、场景切换频率
+5. **段落结构**：段落长度分布、场景转换方式、开头结尾习惯
+6. **对话风格**：对话占比、对话句式、角色语言差异化程度
+
+### 输出格式
+```json
+{
+  "features": [
+    {"dimension": "narrative_pov", "description": "第三人称限知视角，偶尔切换到其他角色视角"},
+    {"dimension": "sentence_pattern", "description": "长短句交替，善用短句制造紧张感，对话句简短"},
+    {"dimension": "word_usage", "description": "现代口语化用词，偶有网络用语，避免生僻字"},
+    {"dimension": "rhythm", "description": "快节奏推进，战斗场景极快，日常场景放缓"},
+    {"dimension": "paragraph_structure", "description": "短段落为主，每段2-5句，场景切换用空行"},
+    {"dimension": "dialogue_style", "description": "对话占比约30%，角色语言有区分，主角话少狠"}
+  ]
+}
+```
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：根据剧情需要自动生成配角
+
+### 故事梗概
+{{ synopsis }}
+
+### 世界观设定
+{{ worldview }}
+
+### 已有人物（避免角色定位重叠）
+{% for ch in existing_characters %}
+- {{ ch.name }}（{{ ch.identity }}）—— {{ ch.intro or "无简介" }}
+{% endfor %}
+
+### 场景上下文
+- 触发场景：{{ scene_context.scene_type }}
+- 触发章节：第{{ scene_context.volume_no | default(1) }}卷第{{ scene_context.chapter_no | default(1) }}章
+- 剧情需求：{{ scene_context.plot_requirement | default("根据梗概要点补充所需配角") }}
+
+### 生成要求
+1. 生成 {{ count }} 个符合梗概和世界观的配角，数量必须足额生成，不得少于 {{ count }} 个
+2. 每个配角须包含四项属性：姓名、身份（默认"配角"）、简介、关系
+3. 姓名风格符合世界观设定，不与已有人物重复
+4. 配角应有明确的剧情价值（推动情节/制造冲突/辅助主角等）
+5. **角色定位不重叠**：新配角的身份和职能须与已有人物有明显区分，避免角色定位重叠
+6. **事实准确性要求**：若世界观取材于真实历史、神话传说或知名小说（如封神演义、洪荒流、西游、三国等），生成的历史/神话/成名人物信息必须与原著或公认设定一致——阵营（门派/教派）、师承关系、法宝、称号等不得张冠李戴
+7. **后续引用标记**：若该配角在后续剧情中仍有出场价值，设置 future_reference 为 true；若仅本次场景一次性出场，设置为 false
+
+### 输出格式
+```json
+{
+  "supporting_characters": [
+    {"name": "姓名", "identity": "配角", "intro": "简介", "relation": "与主角关系及所属阵营", "future_reference": true}
+  ]
+}
+```
+{% endblock %}

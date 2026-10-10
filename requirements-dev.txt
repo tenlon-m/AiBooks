@@ -1,0 +1,16 @@
+# AiBooks 开发/测试依赖（锁定版本）
+#
+# 安装：
+#   pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+# 构建后端（pyproject.toml 的 build-system.requires）
+setuptools==84.0.0
+wheel==0.48.0
+
+# 测试（pyproject.toml 的 [project.optional-dependencies].dev）
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0
+Pillow==12.3.0

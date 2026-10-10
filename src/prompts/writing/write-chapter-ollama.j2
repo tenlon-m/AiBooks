@@ -1,0 +1,67 @@
+{% extends "_base/base-system.j2" %}
+{% import "_base/base-style-constraint.j2" as style %}
+{% import "_base/base-de-ai.j2" as de_ai %}
+
+{% block system_extra %}
+【重要】你是本地模型，请严格按照以下要求输出，不要添加任何额外说明文字。
+{% endblock %}
+
+{% block content %}
+## 任务：撰写第{{ volume_no }}卷第{{ chapter_no }}章
+
+### 故事梗概
+{{ synopsis }}
+
+### 世界观设定
+{{ worldview }}
+
+### 人物设定
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）：{{ ch.intro | default("") }}
+{% endfor %}
+
+{% if naming_favorites and naming_favorites|length > 0 %}
+### 作者命名库（命名生成器收藏的候选名称）
+{% for t, names in naming_favorites.items() %}
+- {{ t }}：{{ names | join("、") }}
+{% endfor %}
+使用规则：本章需要出现新地点、势力/门派、功法/技能、物品名称时，优先从上面对应类别中选用；同一事物再次出现时必须使用完全相同的名称。
+{% endif %}
+
+### 本章爽点
+- {{ cool_point.cool_type }}：{{ cool_point.content_desc }}
+
+### 本章钩子
+- {{ hook.hook_content }}
+
+{% if prev_summary %}
+### 前文摘要
+{{ prev_summary }}
+{% endif %}
+
+{% if items and items|length > 0 %}
+### 已出现物品（名称必须保持一致）
+{% for it in items %}
+- {{ it.name }}（{{ it.item_type }}）
+{% endfor %}
+{% endif %}
+
+{{ style.inject_style(style_features) }}
+
+{{ de_ai.inject_de_ai_compact() }}
+
+### 撰写要求
+1. 字数约 {{ words_per_chapter }} 字
+2. 必须包含爽点和钩子
+3. 人物保持一致
+4. 物品名称不变
+
+### 输出格式（严格按此JSON格式，不要输出其他内容）
+```json
+{
+  "title": "章节标题",
+  "content": "章节正文",
+  "word_count": 3000
+}
+```
+{% endblock %}

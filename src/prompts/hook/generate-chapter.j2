@@ -1,0 +1,58 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：根据大纲梗概要点为单章设计爽点与钩子
+
+### 故事梗概
+{{ synopsis }}
+
+### 世界观设定
+{{ worldview }}
+
+### 正式人物清单
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）
+{% endfor %}
+
+{% if naming_favorites and naming_favorites|length > 0 %}
+### 作者命名库（命名生成器收藏的候选名称）
+{% for t, names in naming_favorites.items() %}
+- {{ t }}：{{ names | join("、") }}
+{% endfor %}
+使用规则：爽点与钩子设计中涉及的地点、势力/门派、功法/技能、物品名称，优先从上面对应类别中选用，保持全书命名一致性。
+{% endif %}
+
+### 本章信息
+- 第{{ volume_no }}卷第{{ chapter_no }}章
+- 本章大纲梗概要点：{{ chapter_synopsis }}
+
+### 前文已生成爽点钩子（上下文）
+{% for h in prev_hooks %}
+- 第{{ h.volume_no }}卷第{{ h.chapter_no }}章：{{ h.hook_content }}
+{% endfor %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 用户对爽点钩子的思路与想法（请在生成本章爽点钩子时充分参考，与上述梗概/世界观/人物设定同等重要）
+{{ user_ideas }}
+
+{% endif %}
+### 生成要求
+1. 为本章设计至少 1 个爽点和 1 个钩子
+2. 爽点须与本章大纲梗概要点紧密相关，推动情节高潮
+3. 钩子须设置回收计划，回收距离不超过 3 卷
+4. 钩子回收点 (recycle_volume_no, recycle_chapter_no) 必须严格晚于本章 (volume_no, chapter_no)，禁止回收点早于或等于埋钩点
+5. 不与前文已生成爽点钩子重复
+6. 爽点与钩子须符合人物性格与世界观设定
+
+### 输出格式
+```json
+{
+  "cool_points": [
+    {"type": "爽点类型", "content": "爽点内容描述"}
+  ],
+  "hooks": [
+    {"content": "钩子内容", "recycle_volume_no": 1, "recycle_chapter_no": 1}
+  ]
+}
+```
+{% endblock %}

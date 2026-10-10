@@ -1,0 +1,64 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：全书7维校验
+
+### 故事梗概（基准）
+{{ synopsis }}
+
+### 世界观设定（基准）
+{{ worldview }}
+
+### 人物设定
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）：{{ ch.relation | default("") }}
+{% endfor %}
+
+### 钩子清单
+{% for h in hooks %}
+- 第{{ h.volume_no }}卷第{{ h.chapter_no }}章钩子：{{ h.hook_content }}（回收：第{{ h.recycle_volume_no }}卷第{{ h.recycle_chapter_no }}章，状态：{{ h.recycle_status }}）
+{% endfor %}
+
+### 物品清单
+{% for it in items %}
+- {{ it.name }}（{{ it.item_type }}），归属：{{ it.owner_character | default("无") }}
+{% endfor %}
+
+### 全书章节内容
+{% for ch in chapters %}
+### 第{{ ch.volume_no }}卷第{{ ch.chapter_no }}章 {{ ch.title }}
+{{ ch.content }}
+{% endfor %}
+
+{% if style_features and style_features|length > 0 %}
+### 风格特征（校验全书是否符合）
+{% for f in style_features %}
+- {{ f.dimension }}：{{ f.description }}
+{% endfor %}
+{% endif %}
+
+{% if user_ideas and user_ideas.strip() %}
+### 用户对校验的思路与想法（请在校验时充分参考）
+{{ user_ideas }}
+
+{% endif %}
+### 校验维度（7维）
+1. **梗概一致性**：全书内容是否符合故事梗概走向
+2. **世界观一致性**：力量体系、设定是否与世界观矛盾
+3. **人物关系一致性**：人物性格、关系是否前后一致
+4. **钩子回收完整性**：所有钩子是否已回收，回收是否自然
+5. **物品全书一致性**：主要物品名称、类型是否全书统一
+6. **AI化程度评估**：评估全书AI化程度（excellent/good/medium/poor），定位典型问题章节
+7. **风格一致性**：全书是否符合指定风格特征
+
+### 输出格式
+```json
+{
+  "items": [
+    {"check_type": "synopsis_consistency", "result": "pass", "problem_desc": null, "volume_no": null, "chapter_no": null}
+  ],
+  "ai_degree_score": "good",
+  "ai_degree_problems": [{"volume_no": 1, "chapter_no": 3, "problem": "句式过于工整"}]
+}
+```
+{% endblock %}

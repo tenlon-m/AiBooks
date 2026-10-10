@@ -1,0 +1,23 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：生成润色调整说明
+
+### 原始内容
+{{ original_content }}
+
+### 润色后内容
+{{ polished_content }}
+
+### 要求
+逐处说明调整了什么、为什么调整，便于用户理解。
+
+### 输出格式
+```json
+{
+  "notes": [
+    {"position": "位置描述", "reason": "调整原因", "original": "原文", "polished": "修改后"}
+  ]
+}
+```
+{% endblock %}

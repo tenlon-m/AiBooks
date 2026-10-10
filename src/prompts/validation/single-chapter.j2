@@ -1,0 +1,34 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：单章再校验（4维）
+
+### 故事梗概（基准）
+{{ synopsis }}
+
+### 世界观设定（基准）
+{{ worldview }}
+
+### 人物设定
+{% for ch in characters %}
+- {{ ch.name }}（{{ ch.identity }}）
+{% endfor %}
+
+### 待校验章节内容
+{{ chapter_content }}
+
+### 校验维度（4维）
+1. **梗概走向一致性**：修改后内容是否符合梗概整体走向
+2. **世界观设定一致性**：是否与世界观矛盾
+3. **人物关系一致性**：人物表现是否符合设定
+4. **钩子回收状态**：是否破坏了钩子设置或回收
+
+### 输出格式
+```json
+{
+  "items": [
+    {"check_type": "synopsis_consistency", "result": "pass", "problem_desc": null}
+  ]
+}
+```
+{% endblock %}

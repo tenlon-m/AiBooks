@@ -1,0 +1,12 @@
+{
+  "name": "简洁风格",
+  "format": ["txt", "docx", "epub", "markdown", "pdf"],
+  "font": "SimHei",
+  "font_size": 14,
+  "line_spacing": 1.5,
+  "title_style": "bold_left",
+  "first_indent": false,
+  "header": "",
+  "footer": "",
+  "is_builtin": true
+}

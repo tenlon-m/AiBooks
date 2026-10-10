@@ -1,0 +1,23 @@
+{% extends "_base/base-system.j2" %}
+
+{% block content %}
+## 任务：压缩前文摘要
+
+### 前文章节内容
+{% for ch in chapters %}
+### 第{{ ch.volume_no }}卷第{{ ch.chapter_no }}章 {{ ch.title }}
+{{ ch.content }}
+{% endfor %}
+
+### 要求
+1. 保留关键情节、人物状态变化、重要物品、未回收钩子
+2. 压缩为不超过2000字的摘要
+3. 按章节顺序组织
+
+### 输出格式
+```json
+{
+  "summary": "前文摘要内容"
+}
+```
+{% endblock %}
