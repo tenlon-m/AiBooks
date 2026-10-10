@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 from typing import AsyncGenerator
 
 from sqlalchemy import select
@@ -61,6 +60,7 @@ class NamingService:
         existing = await self._load_existing_names(project_id, name_type)
         await release_write_lock(self.session)
 
+        self.logger.info(f"AI生成命名 project_id={project_id} name_type={name_type} count={count}")
         result = await self.gateway.call_and_parse(
             module="naming",
             scene="generate",

@@ -1,7 +1,7 @@
 """人物管理页 - AI提取/生成人物 + 手动增删改 + 确认 + 增量去重 + 批量操作 + 进度提示."""
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -13,10 +13,8 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QSpinBox,
     QTableWidget,
     QTableWidgetItem,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -40,6 +38,19 @@ class CharacterPage(QWidget):
         self._init_ui()
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
+
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
 
     def _get_progress_timer(self) -> CharacterProgressTimer:
         if self._progress_timer is None:
@@ -179,7 +190,7 @@ class CharacterPage(QWidget):
         worker = ApiWorker(client.get, f"/api/characters/{pid}")
         worker.result.connect(self._on_characters_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_characters_loaded(self, characters: list) -> None:
@@ -277,7 +288,7 @@ class CharacterPage(QWidget):
         worker = ApiWorker(client.post, "/api/characters/ai_extract", json=payload)
         worker.result.connect(self._on_merge_done)
         worker.error.connect(self._on_merge_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _ai_import_from_file(self) -> None:
@@ -297,7 +308,7 @@ class CharacterPage(QWidget):
         worker = ApiWorker(client.post, "/api/characters/ai_import", json=payload)
         worker.result.connect(self._on_merge_done)
         worker.error.connect(self._on_merge_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _ai_generate_supporting(self) -> None:
@@ -331,7 +342,7 @@ class CharacterPage(QWidget):
         worker = ApiWorker(client.post, "/api/characters/ai_generate_supporting", json=payload)
         worker.result.connect(self._on_merge_done)
         worker.error.connect(self._on_merge_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_merge_done(self, resp: dict) -> None:
@@ -378,7 +389,7 @@ class CharacterPage(QWidget):
         worker = ApiWorker(client.post, "/api/characters", json=payload)
         worker.result.connect(lambda _: (self._load_characters(), self.name_input.clear(), self.identity_input.clear(), self.intro_input.clear(), self.relation_input.clear()))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _batch_confirm(self) -> None:
@@ -390,7 +401,7 @@ class CharacterPage(QWidget):
         worker = ApiWorker(client.post, "/api/characters/batch_confirm", json={"character_ids": selected_ids})
         worker.result.connect(lambda _: self._load_characters())
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _batch_delete(self) -> None:
@@ -409,7 +420,7 @@ class CharacterPage(QWidget):
         worker = ApiWorker(client.post, "/api/characters/batch_delete", json={"character_ids": selected_ids})
         worker.result.connect(self._on_batch_delete_done)
         worker.error.connect(self._on_batch_delete_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_batch_delete_done(self, resp: dict) -> None:
@@ -434,7 +445,7 @@ class CharacterPage(QWidget):
         worker = ApiWorker(client.get, "/api/template-library/worldview")
         worker.result.connect(self._on_templates_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_templates_loaded(self, templates) -> None:
@@ -475,7 +486,7 @@ class CharacterPage(QWidget):
         )
         worker.result.connect(self._on_template_applied)
         worker.error.connect(self._on_template_apply_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_template_applied(self, data: dict) -> None:

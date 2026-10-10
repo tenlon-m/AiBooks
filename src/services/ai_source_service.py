@@ -126,6 +126,7 @@ class AiSourceService:
         )
         self.session.add(source)
         await self.session.flush()
+        self.logger.info(f"创建AI源 source_id={source.source_id} name={req.name} model={req.model_name}")
         return self._to_dto(source)
 
     async def list_all(self) -> list[AiSourceDto]:
@@ -182,6 +183,7 @@ class AiSourceService:
                 ]
             source.tags = self._join_tags(new_display, new_task)
         await self.session.flush()
+        self.logger.info(f"更新AI源 source_id={source_id}")
         return self._to_dto(source)
 
     async def delete(self, source_id: str) -> bool:
@@ -194,6 +196,7 @@ class AiSourceService:
             raise ValueError("该源被路由策略引用，请先切换")
         await self.session.delete(source)
         await self.session.flush()
+        self.logger.info(f"删除AI源 source_id={source_id}")
         return True
 
     async def test_connection(self, source_id: str) -> dict[str, Any]:
@@ -276,7 +279,7 @@ class AiSourceService:
             return {
                 "source_id": source_id,
                 "success": False,
-                "message": str(e),
+                "message": f"AI 源连接失败: {type(e).__name__}",
                 "latency_ms": latency_ms,
                 "model_profile": profile.to_dict(),
             }
@@ -382,7 +385,8 @@ class AiSourceService:
             model_name = item.get("model_name")
             if not all([name, source_type, api_endpoint, model_name]):
                 raise ValueError(
-                    f"导入数据缺少必填字段(name/source_type/api_endpoint/model_name): {item}"
+                    f"导入数据缺少必填字段(name/source_type/api_endpoint/model_name)，"
+                    f"已提供字段: {[k for k, v in item.items() if v]}"
                 )
             existing = await self.session.execute(
                 select(AiSource).where(AiSource.name == name)

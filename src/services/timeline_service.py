@@ -13,7 +13,7 @@ from src.api.schemas.timeline_schema import (
     TimelineReorderResult,
     TimelineUpdateRequest,
 )
-from src.db.models import Chapter, Character, Project, TimelineNode
+from src.db.models import Project, TimelineNode
 from src.utils.logger import get_logger
 
 DEATH_KEYWORDS = ("死亡", "身亡", "陨落", "战死", "牺牲", "逝世", "离世", "身陨")
@@ -53,6 +53,7 @@ class TimelineService:
         )
         self.session.add(node)
         await self.session.commit()
+        self.logger.info(f"创建时间线节点 node_id={node.node_id} project_id={project_id} event={req.event_name}")
         return self._to_dto(node)
 
     async def list_nodes(self, project_id: str) -> list[TimelineNodeDto]:
@@ -90,6 +91,7 @@ class TimelineService:
             raise ValueError("时间线节点不存在")
         await self.session.delete(node)
         await self.session.commit()
+        self.logger.info(f"删除时间线节点 node_id={node_id} project_id={project_id}")
         return 1
 
     async def reorder(

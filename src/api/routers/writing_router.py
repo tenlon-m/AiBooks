@@ -1,7 +1,6 @@
 """批量撰写路由 - 含SSE流式进度."""
 from __future__ import annotations
 
-import asyncio
 import json
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -19,7 +18,6 @@ from src.api.schemas.writing_schema import (
     SaveWritingRequest,
     StartWritingRequest,
     WritingConsistencyResult,
-    WritingProgressEvent,
     WritingRepairRequest,
 )
 from src.db.session import get_session, session_scope

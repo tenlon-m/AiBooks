@@ -45,3 +45,6 @@ _tmp_*.py
 
 提示词.txt
 唐库对比.md
+.secret_key
+ai_sources.json
+

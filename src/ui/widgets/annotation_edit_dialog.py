@@ -64,6 +64,19 @@ class AnnotationEditDialog(QDialog):
         self._init_ui()
         self._fill_fields()
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _init_ui(self) -> None:
         layout = QVBoxLayout(self)
 
@@ -174,7 +187,7 @@ class AnnotationEditDialog(QDialog):
             )
         worker.result.connect(self._on_saved)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_saved(self, data: dict) -> None:

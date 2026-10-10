@@ -17,12 +17,10 @@ from src.config.settings import get_config
 from src.db.models import (
     Chapter,
     Character,
-    CoolPoint,
     Hook,
     Item,
     Project,
     StyleFeature,
-    StyleLibrary,
     Synopsis,
     ValidationReport,
     Worldview,

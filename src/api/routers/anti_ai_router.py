@@ -10,7 +10,7 @@ from src.api.schemas.anti_ai_schema import (
     AntiAiRewriteRequest,
 )
 from src.api.schemas.writing_schema import ChapterDto
-from src.db.session import get_session, session_scope
+from src.db.session import get_session
 from src.services.anti_ai_service import AntiAiService
 from src.utils.logger import get_logger
 

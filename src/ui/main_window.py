@@ -5,18 +5,15 @@ import sys
 import time
 from datetime import datetime
 
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QColor, QPalette
 from PySide6.QtWidgets import (
     QApplication,
 
-    QLabel,
     QMainWindow,
     QMessageBox,
     QStackedWidget,
     QStatusBar,
     QToolBar,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -106,6 +103,19 @@ class MainWindow(QMainWindow):
         self._auto_save_in_flight: bool = False
         self._init_auto_save_timer()
         self._init_key_node_signals()
+
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
 
     def _init_ui(self) -> None:
         self.stack = QStackedWidget()
@@ -270,8 +280,13 @@ class MainWindow(QMainWindow):
         if self._current_page_is_busy():
             QMessageBox.warning(self, "提示", "当前页面有操作进行中，请等待完成后再切换页面")
             return
+        current_widget = self.stack.currentWidget()
+        if current_widget and hasattr(current_widget, "clear_page"):
+            try:
+                current_widget.clear_page()
+            except Exception:
+                pass
         if record_history:
-            current_widget = self.stack.currentWidget()
             current_key = (
                 self._widget_to_key.get(id(current_widget)) if current_widget else None
             )
@@ -336,7 +351,7 @@ class MainWindow(QMainWindow):
         worker = ApiWorker(client.get, "/api/creation")
         worker.result.connect(self._on_project_list_loaded)
         worker.error.connect(lambda msg: self.statusBar().showMessage(f"加载项目列表失败: {msg}"))
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_project_list_loaded(self, projects: list) -> None:
@@ -424,7 +439,7 @@ class MainWindow(QMainWindow):
         worker = ApiWorker(client.get, f"/api/creation/{project_id}")
         worker.result.connect(lambda info: self._on_open_project_loaded(project_id, info))
         worker.error.connect(lambda msg: QMessageBox.critical(self, "错误", f"打开项目失败: {msg}"))
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_open_project_loaded(self, project_id: str, info: dict) -> None:
@@ -487,7 +502,7 @@ class MainWindow(QMainWindow):
             else:
                 worker.result.connect(self._on_auto_save_success)
                 worker.error.connect(self._on_auto_save_failure)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
         if trigger_type == "manual":
             self.statusBar().showMessage("保存中...")
@@ -543,7 +558,7 @@ class MainWindow(QMainWindow):
         dialog.exec()
 
     def _show_about(self) -> None:
-        QMessageBox.about(self, "关于 AiBooks", "AiBooks v0.1.0\nAI全自动小说撰写软件\n基于免费在线AI大模型")
+        QMessageBox.about(self, "关于 AiBooks", "AiBooks v1.0.0\nAI全自动小说撰写软件\n基于免费在线AI大模型")
 
     def _apply_style(self) -> None:
         mgr = ThemeManager.instance()
@@ -597,7 +612,6 @@ class MainWindow(QMainWindow):
     def _on_theme_changed(self, theme_data: dict) -> None:
         """主题变更槽：重新应用 QSS 并联动阅读区与图表画布."""
         self._apply_style()
-        from PySide6.QtWidgets import QTextEdit
         fg = theme_data.get("foreground", "#222222")
         bg = theme_data.get("background", "#FFFFFF")
         for page in self.pages.values():

@@ -1,7 +1,6 @@
 """降AI率改写页 - 选择章节→AI改写→原文/改写对比→采纳或回退."""
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -36,6 +35,19 @@ class AntiAiPage(QWidget):
         self._init_ui()
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
+
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
 
     def clear_page(self) -> None:
         self._chapter_combo.clear()
@@ -154,7 +166,7 @@ class AntiAiPage(QWidget):
         worker = ApiWorker(client.get, f"/api/writing/{pid}/chapters")
         worker.result.connect(self._on_chapters_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_chapters_loaded(self, chapters: list) -> None:
@@ -186,7 +198,7 @@ class AntiAiPage(QWidget):
         )
         worker.result.connect(self._on_content_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_content_loaded(self, data: dict) -> None:
@@ -216,7 +228,7 @@ class AntiAiPage(QWidget):
         )
         worker.result.connect(self._on_rewrite_done)
         worker.error.connect(self._on_rewrite_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_rewrite_done(self, data: dict) -> None:
@@ -253,7 +265,7 @@ class AntiAiPage(QWidget):
         )
         worker.result.connect(self._on_adopt_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_adopt_done(self, data: dict) -> None:
@@ -281,7 +293,7 @@ class AntiAiPage(QWidget):
         )
         worker.result.connect(self._on_rollback_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_rollback_done(self, data: dict) -> None:
@@ -295,7 +307,7 @@ class AntiAiPage(QWidget):
             )
             worker.result.connect(self._on_content_loaded)
             worker.error.connect(self._on_error)
-            self._workers.append(worker)
+            self._add_worker(worker)
             worker.start()
         QMessageBox.information(self, "回退成功", "章节正文已恢复为原文")
 
@@ -309,7 +321,7 @@ class AntiAiPage(QWidget):
         )
         worker.result.connect(self._on_history_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_history_loaded(self, data: dict) -> None:

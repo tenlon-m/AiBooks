@@ -58,6 +58,19 @@ class AiCallLogPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self.table.setRowCount(0)
         self.detail_edit.clear()
@@ -113,7 +126,7 @@ class AiCallLogPage(QWidget):
         worker = ApiWorker(client.get, path)
         worker.result.connect(self._on_logs_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_logs_loaded(self, logs: list) -> None:
@@ -151,7 +164,7 @@ class AiCallLogPage(QWidget):
         worker = ApiWorker(client.get, f"/api/ai_logs/logs/{log_id}")
         worker.result.connect(self._on_detail_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_detail_loaded(self, data: dict) -> None:

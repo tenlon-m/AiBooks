@@ -7,7 +7,6 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.ai.adapters.openai_compatible import OpenAiCompatibleAdapter
 from src.ai.health_checker import HealthChecker
 from src.ai.model_adapter import get_model_adapter
 from src.ai.policy_snapshot import RoutingPolicySnapshot

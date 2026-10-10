@@ -49,6 +49,19 @@ class ChapterSplitDialog(QDialog):
         if cursor_pos > 0:
             self._add_position(cursor_pos)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _chapter_label(self) -> str:
         return (
             f"第{self._chapter.get('volume_no')}卷第{self._chapter.get('chapter_no')}章 "
@@ -195,7 +208,7 @@ class ChapterSplitDialog(QDialog):
         )
         worker.result.connect(self._on_split_done)
         worker.error.connect(self._on_split_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_split_done(self, data: dict) -> None:

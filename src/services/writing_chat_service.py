@@ -113,6 +113,7 @@ class WritingChatService:
 
         await release_write_lock(self.session)
 
+        self.logger.info(f"AI对话写作 project_id={project_id} chapter_id={chapter_id} msg_len={len(message)}")
         result = await self.gateway.call_and_parse(
             module="writing",
             scene="chat",

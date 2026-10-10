@@ -126,6 +126,19 @@ class ItemPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _init_ui(self) -> None:
         layout = QVBoxLayout(self)
 
@@ -212,7 +225,7 @@ class ItemPage(QWidget):
         worker = ApiWorker(client.get, f"/api/items/{pid}")
         worker.result.connect(self._on_items_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_items_loaded(self, items: list) -> None:
@@ -260,7 +273,7 @@ class ItemPage(QWidget):
         worker = ApiWorker(client.post, "/api/items/", json=payload)
         worker.result.connect(self._on_write_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _edit_item(self) -> None:
@@ -280,7 +293,7 @@ class ItemPage(QWidget):
         )
         worker.result.connect(self._on_write_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _delete_item(self) -> None:
@@ -300,7 +313,7 @@ class ItemPage(QWidget):
         worker = ApiWorker(client.delete, f"/api/items/{item['item_id']}")
         worker.result.connect(self._on_write_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_write_done(self, _data: object) -> None:
@@ -317,7 +330,7 @@ class ItemPage(QWidget):
         worker = ApiWorker(client.get, f"/api/items/{pid}/consistency")
         worker.result.connect(self._on_consistency_checked)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_consistency_checked(self, data: dict) -> None:

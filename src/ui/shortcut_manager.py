@@ -37,6 +37,19 @@ class ShortcutManager(QObject):
         self._retry_count: int = 0
         self._logger = get_logger()
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def register(self, action_name: str, handler: Callable[[], None]) -> None:
         """登记动作处理器；load() 完成后才会真正绑定 QShortcut."""
         self._handlers[action_name] = handler
@@ -47,7 +60,7 @@ class ShortcutManager(QObject):
         worker = ApiWorker(client.get, "/api/shortcuts")
         worker.result.connect(self._on_loaded)
         worker.error.connect(self._on_load_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_loaded(self, shortcuts: list) -> None:

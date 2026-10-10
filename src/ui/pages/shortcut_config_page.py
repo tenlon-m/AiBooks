@@ -78,6 +78,19 @@ class ShortcutConfigPage(QWidget):
         self._has_unsaved_changes: bool = False
         self._init_ui()
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self.table.setRowCount(0)
         self.status_label.clear()
@@ -149,7 +162,7 @@ class ShortcutConfigPage(QWidget):
         worker = ApiWorker(client.get, "/api/shortcuts")
         worker.result.connect(self._on_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_loaded(self, shortcuts: list) -> None:
@@ -207,7 +220,7 @@ class ShortcutConfigPage(QWidget):
         )
         worker.result.connect(lambda d: self._on_update_done(d, row))
         worker.error.connect(lambda msg: self._on_update_error(msg, row))
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_update_done(self, data: dict, row: int) -> None:
@@ -242,7 +255,7 @@ class ShortcutConfigPage(QWidget):
         worker = ApiWorker(client.post, "/api/shortcuts/reset")
         worker.result.connect(self._on_reset_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_reset_done(self, data: dict) -> None:

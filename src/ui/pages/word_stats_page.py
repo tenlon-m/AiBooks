@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMessageBox,
-    QPlainTextEdit,
     QPushButton,
     QTabWidget,
     QVBoxLayout,
@@ -31,6 +30,19 @@ class WordStatsPage(QWidget):
         self._init_ui()
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
+
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
 
     def clear_page(self) -> None:
         self._chapter_widget.clear()
@@ -109,7 +121,7 @@ class WordStatsPage(QWidget):
         worker = ApiWorker(self._fetch_stats, client, pid)
         worker.result.connect(self._on_stats_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     @staticmethod

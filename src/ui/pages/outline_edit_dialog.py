@@ -183,6 +183,19 @@ class SceneEditArea(QWidget):
         self._init_ui()
         self._load_scenes()
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _init_ui(self) -> None:
         layout = QVBoxLayout(self)
         label = QLabel("场景编辑（修改/删除将在保存时提交）")
@@ -218,7 +231,7 @@ class SceneEditArea(QWidget):
         worker = ApiWorker(client.get, f"/api/scene-outline/{self._chapter_id}/scenes")
         worker.result.connect(self._on_scenes_loaded)
         worker.error.connect(self._on_load_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_scenes_loaded(self, data: list) -> None:

@@ -53,6 +53,19 @@ class NamingGeneratorPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self._stop_sse_worker()
         self._candidate_table.setRowCount(0)
@@ -353,7 +366,7 @@ class NamingGeneratorPage(QWidget):
         # 收藏即时落库，成功后触发关键节点自动保存（main_window 监听 naming_saved）
         worker.result.connect(self._on_favorite_saved)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_favorite_saved(self, _data: object) -> None:
@@ -378,7 +391,7 @@ class NamingGeneratorPage(QWidget):
                     f"/api/naming/{pid}/favorites/{fav_id}",
                 )
                 worker.error.connect(self._on_error)
-                self._workers.append(worker)
+                self._add_worker(worker)
                 worker.start()
             self._favorite_table.removeRow(row)
         self._status_label.setText("已取消收藏")
@@ -392,7 +405,7 @@ class NamingGeneratorPage(QWidget):
         worker = ApiWorker(client.get, f"/api/naming/{pid}/favorites")
         worker.result.connect(self._on_favorites_loaded)
         worker.error.connect(self._on_favorites_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_favorites_error(self, msg: str) -> None:
@@ -440,7 +453,7 @@ class NamingGeneratorPage(QWidget):
         worker = ApiWorker(client.post, f"/api/naming/{pid}/import-to-characters")
         worker.result.connect(self._on_import_chars_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_import_chars_done(self, data: dict) -> None:
@@ -465,7 +478,7 @@ class NamingGeneratorPage(QWidget):
         worker = ApiWorker(client.post, f"/api/naming/{pid}/import-to-items")
         worker.result.connect(self._on_import_items_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_import_items_done(self, data: dict) -> None:
@@ -489,7 +502,7 @@ class NamingGeneratorPage(QWidget):
         worker = ApiWorker(client.post, f"/api/naming/{pid}/append-to-worldview")
         worker.result.connect(self._on_append_wv_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_append_wv_done(self, data: dict) -> None:

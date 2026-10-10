@@ -1,6 +1,11 @@
 """创作参数AI润色服务 - 扩展用户简单思路为完整梗概/世界观."""
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.services.garbled_normalizer import GarbledConfig
+
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession

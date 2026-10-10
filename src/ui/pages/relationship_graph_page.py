@@ -53,6 +53,19 @@ class RelationshipGraphPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _get_progress_timer(self) -> CharacterProgressTimer:
         if self._progress_timer is None:
             self._progress_timer = CharacterProgressTimer(self.window().statusBar())
@@ -182,7 +195,7 @@ class RelationshipGraphPage(QWidget):
         worker = ApiWorker(client.get, f"/api/relationships/{pid}")
         worker.result.connect(self._on_graph_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_graph_loaded(self, data: dict) -> None:
@@ -245,7 +258,7 @@ class RelationshipGraphPage(QWidget):
         worker = ApiWorker(client.post, "/api/relationships/", json=payload)
         worker.result.connect(self._on_relation_saved)
         worker.error.connect(self._on_save_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _edit_relation(self) -> None:
@@ -272,7 +285,7 @@ class RelationshipGraphPage(QWidget):
         )
         worker.result.connect(self._on_relation_saved)
         worker.error.connect(self._on_save_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _delete_relation(self) -> None:
@@ -303,7 +316,7 @@ class RelationshipGraphPage(QWidget):
         )
         worker.result.connect(self._on_relation_deleted)
         worker.error.connect(self._on_save_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_relation_saved(self, _data: object) -> None:
@@ -426,7 +439,7 @@ class RelationshipGraphPage(QWidget):
         )
         worker.result.connect(self._on_extract_done)
         worker.error.connect(self._on_extract_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_extract_done(self, data: dict) -> None:
@@ -467,7 +480,7 @@ class RelationshipGraphPage(QWidget):
         )
         worker.result.connect(self._on_save_done)
         worker.error.connect(self._on_save_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_save_done(self, data: Any) -> None:

@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.backup.archive_format import ArchiveFormat
 from src.db.models import (
     AiCallLog,
+    AntiAiRewriteRecord,
+    BatchOperationRecord,
     Chapter,
     ChapterAnnotation,
     ChapterOutline,
@@ -21,12 +23,16 @@ from src.db.models import (
     CoolPoint,
     EmotionCurvePoint,
     Hook,
+    IterationRecord,
     Item,
     ModifyRecord,
     NameFavorite,
     Outline,
+    ProofreadDraft,
     Project,
+    Script,
     SensitiveWord,
+    StoryUnit,
     StyleFeature,
     StyleLibrary,
     Synopsis,
@@ -246,6 +252,8 @@ class ProjectImportService:
                 if old_cid and old_cid not in char_id_map:
                     char_id_map[old_cid] = old_cid
 
+            version_id_map: dict[str, str] = {}
+
             for key, model_cls, id_field in [
                 ("writing_chat_histories", WritingChatHistory, "chat_id"),
                 ("chapter_versions", ChapterVersion, "version_id"),
@@ -260,7 +268,11 @@ class ProjectImportService:
                     old_ch_id = item_data.get("chapter_id", "")
                     if old_ch_id in chapter_id_map:
                         item_data["chapter_id"] = chapter_id_map[old_ch_id]
-                    item_data[id_field] = str(uuid.uuid4())
+                    old_id = item_data.get(id_field, "")
+                    new_id = str(uuid.uuid4())
+                    if key == "chapter_versions" and old_id:
+                        version_id_map[old_id] = new_id
+                    item_data[id_field] = new_id
                     _parse_datetime_fields(item_data, cols_set)
                     cols = {k: v for k, v in item_data.items() if k in cols_set}
                     self.session.add(model_cls(**cols))
@@ -301,6 +313,69 @@ class ProjectImportService:
                             old_cid = item_data.get(cid_field, "")
                             if old_cid in char_id_map:
                                 item_data[cid_field] = char_id_map[old_cid]
+                    item_data[id_field] = str(uuid.uuid4())
+                    _parse_datetime_fields(item_data, cols_set)
+                    cols = {k: v for k, v in item_data.items() if k in cols_set}
+                    self.session.add(model_cls(**cols))
+
+            story_unit_id_map: dict[str, str] = {}
+            story_units = data.get("story_units", [])
+            if isinstance(story_units, dict):
+                story_units = [story_units]
+            su_cols_set = set(StoryUnit.__table__.columns.keys())
+            su_entities_by_new_id: dict[str, tuple] = {}
+            for su_data in story_units:
+                old_su_id = su_data.get("story_unit_id", "")
+                new_su_id = str(uuid.uuid4())
+                story_unit_id_map[old_su_id] = new_su_id
+                su_data["story_unit_id"] = new_su_id
+                su_data["project_id"] = new_project_id
+                original_parent = su_data.get("parent_unit_id")
+                su_data["parent_unit_id"] = None
+                _parse_datetime_fields(su_data, su_cols_set)
+                cols = {k: v for k, v in su_data.items() if k in su_cols_set}
+                entity = StoryUnit(**cols)
+                self.session.add(entity)
+                su_entities_by_new_id[new_su_id] = (entity, original_parent)
+            await self.session.flush()
+            for _new_su_id, (_entity, _original_parent) in su_entities_by_new_id.items():
+                if _original_parent and _original_parent in story_unit_id_map:
+                    _entity.parent_unit_id = story_unit_id_map[_original_parent]
+
+            for key, model_cls, id_field in [
+                ("batch_operation_records", BatchOperationRecord, "batch_id"),
+                ("scripts", Script, "script_id"),
+                ("anti_ai_rewrite_records", AntiAiRewriteRecord, "rewrite_id"),
+                ("iteration_records", IterationRecord, "iteration_id"),
+                ("proofread_drafts", ProofreadDraft, "draft_id"),
+            ]:
+                items = data.get(key, [])
+                if isinstance(items, dict):
+                    items = [items]
+                cols_set = set(model_cls.__table__.columns.keys())
+                for item_data in items:
+                    if "project_id" in item_data:
+                        item_data["project_id"] = new_project_id
+                    old_ch_id = item_data.get("chapter_id", "")
+                    if old_ch_id in chapter_id_map:
+                        item_data["chapter_id"] = chapter_id_map[old_ch_id]
+                    if key == "scripts":
+                        old_suid = item_data.get("outline_unit_id", "")
+                        if old_suid and old_suid in story_unit_id_map:
+                            item_data["outline_unit_id"] = story_unit_id_map[old_suid]
+                    if key == "anti_ai_rewrite_records":
+                        old_vid = item_data.get("original_version_id", "")
+                        if old_vid in version_id_map:
+                            item_data["original_version_id"] = version_id_map[old_vid]
+                    if key == "iteration_records":
+                        for vid_field in ("input_version_id", "output_version_id"):
+                            old_vid = item_data.get(vid_field, "")
+                            if old_vid in version_id_map:
+                                item_data[vid_field] = version_id_map[old_vid]
+                    if key == "proofread_drafts":
+                        old_vid = item_data.get("version_id", "")
+                        if old_vid in version_id_map:
+                            item_data["version_id"] = version_id_map[old_vid]
                     item_data[id_field] = str(uuid.uuid4())
                     _parse_datetime_fields(item_data, cols_set)
                     cols = {k: v for k, v in item_data.items() if k in cols_set}

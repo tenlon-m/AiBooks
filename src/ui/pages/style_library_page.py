@@ -40,6 +40,19 @@ class StyleLibraryPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self._file_paths = []
         self.files_label.setText("已选文件：无")
@@ -179,7 +192,7 @@ class StyleLibraryPage(QWidget):
         worker = ApiWorker(client.post, "/api/style-libraries/feed", json=payload)
         worker.result.connect(self._on_feed_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_feed_done(self, data: dict) -> None:
@@ -196,7 +209,7 @@ class StyleLibraryPage(QWidget):
         worker = ApiWorker(client.get, "/api/style-libraries")
         worker.result.connect(self._on_list_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_list_loaded(self, libraries: list) -> None:
@@ -226,12 +239,12 @@ class StyleLibraryPage(QWidget):
             return
         client = get_api_client()
         worker = ApiWorker(client.get, f"/api/style-libraries/{lib_id}")
-        worker.result.connect(self._on_detail_loaded)
+        worker.result.connect(self._on_view_detail_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
-    def _on_detail_loaded(self, data: dict) -> None:
+    def _on_view_detail_loaded(self, data: dict) -> None:
         features = data.get("features", [])
         lines = [f"风格库：{data.get('name', '')}", f"构建方式：{data.get('build_method', '')}", "", "特征列表："]
         for f in features:
@@ -255,7 +268,7 @@ class StyleLibraryPage(QWidget):
         worker = ApiWorker(client.post, "/api/style-libraries/export", json={"style_library_id": lib_id, "target_path": target_path})
         worker.result.connect(lambda d: QMessageBox.information(self, "成功", f"已导出到：{d.get('file_path', '')}"))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _import_library(self) -> None:
@@ -268,7 +281,7 @@ class StyleLibraryPage(QWidget):
         worker = ApiWorker(client.post, "/api/style-libraries/import", json={"file_path": file_path})
         worker.result.connect(self._on_import_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_import_done(self, data: dict) -> None:
@@ -304,7 +317,7 @@ class StyleLibraryPage(QWidget):
         worker = ApiWorker(client.delete, "/api/style-libraries/batch", json={"style_library_ids": lib_ids})
         worker.result.connect(lambda _: self._on_batch_delete_done(len(lib_ids)))
         worker.error.connect(self._on_batch_delete_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_batch_delete_done(self, count: int) -> None:
@@ -335,7 +348,7 @@ class StyleLibraryPage(QWidget):
         worker = ApiWorker(client.get, f"/api/style-libraries/{lib_id}")
         worker.result.connect(self._on_detail_loaded)
         worker.error.connect(self._on_detail_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_detail_loaded(self, detail: dict) -> None:
@@ -361,7 +374,7 @@ class StyleLibraryPage(QWidget):
         worker = ApiWorker(client.put, f"/api/style-libraries/{lib_id}", json=data)
         worker.result.connect(self._on_edit_done)
         worker.error.connect(self._on_edit_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_edit_done(self, data: dict) -> None:

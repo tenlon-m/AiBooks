@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -52,10 +52,7 @@ class AppConfig(BaseSettings):
     resources_dir: Path = Field(default_factory=lambda: _resource_base() / "src" / "resources")
     templates_dir: Path = Field(default_factory=lambda: _resource_base() / "src" / "templates")
 
-    db_url: str = Field(
-        default_factory=lambda: "sqlite+aiosqlite:///"
-        + (_writable_base() / "data" / "aibooks.db").as_posix()
-    )
+    db_url: str = Field(default="")
     db_echo: bool = False
     db_pool_size: int = 5
 
@@ -154,6 +151,12 @@ class AppConfig(BaseSettings):
     @property
     def db_path(self) -> Path:
         return self.data_dir / "aibooks.db"
+
+    @model_validator(mode="after")
+    def _sync_db_url(self) -> AppConfig:
+        if not self.db_url:
+            self.db_url = f"sqlite+aiosqlite:///{self.db_path.as_posix()}"
+        return self
 
     def ensure_dirs(self) -> None:
         # 只初始化可写目录；prompts/templates/resources 属只读资源（打包后位于

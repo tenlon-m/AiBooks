@@ -1,7 +1,6 @@
 """乱码修复参数配置对话框 - 全局/项目级配置读写."""
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -97,6 +96,19 @@ class GarbledConfigDialog(QDialog):
         self._workers: list = []
         self._load_config()
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _current_scope(self) -> str:
         return self.scope_combo.currentData()
 
@@ -112,7 +124,7 @@ class GarbledConfigDialog(QDialog):
         worker = ApiWorker(client.get, path)
         worker.result.connect(self._on_config_loaded)
         worker.error.connect(self._on_load_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_config_loaded(self, data: dict) -> None:
@@ -149,7 +161,7 @@ class GarbledConfigDialog(QDialog):
         worker = ApiWorker(client.put, path, json=config)
         worker.result.connect(self._on_save_done)
         worker.error.connect(self._on_save_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_save_done(self, data: dict) -> None:

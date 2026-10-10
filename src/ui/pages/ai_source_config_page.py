@@ -3,7 +3,6 @@ from __future__ import annotations
 
 
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QFormLayout,
     QHBoxLayout,
@@ -20,7 +19,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.config.settings import get_config
 from src.ui.api_client import get_api_client
 from src.ui.api_worker import ApiWorker
 from src.ui.project_context import get_project_context
@@ -157,6 +155,19 @@ class AiSourceConfigPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self.preset_combo.setCurrentIndex(0)
         self.name_input.clear()
@@ -213,7 +224,7 @@ class AiSourceConfigPage(QWidget):
         worker = ApiWorker(client.get, "/api/config/ollama/models", params={"endpoint": endpoint})
         worker.result.connect(self._on_ollama_models_loaded)
         worker.error.connect(self._on_ollama_models_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_ollama_models_loaded(self, data: dict) -> None:
@@ -490,7 +501,7 @@ class AiSourceConfigPage(QWidget):
         worker = ApiWorker(client.get, "/api/config/ai_sources")
         worker.result.connect(self._on_sources_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     @staticmethod
@@ -557,7 +568,7 @@ class AiSourceConfigPage(QWidget):
         worker = ApiWorker(client.post, "/api/config/ai_sources", json=payload)
         worker.result.connect(lambda _: (self._load_sources(), self.status_label.setText("AI源已添加"), self._notify_runtime_changed()))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _test_connection(self) -> None:
@@ -571,7 +582,7 @@ class AiSourceConfigPage(QWidget):
         worker = ApiWorker(client.post, f"/api/config/ai_sources/{source_id}/test")
         worker.result.connect(self._on_test_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_test_done(self, data: dict) -> None:
@@ -622,7 +633,7 @@ class AiSourceConfigPage(QWidget):
         )
         worker.result.connect(self._on_task_tags_applied)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_task_tags_applied(self, _data: dict) -> None:
@@ -643,7 +654,7 @@ class AiSourceConfigPage(QWidget):
         worker = ApiWorker(client.delete, f"/api/config/ai_sources/{source_id}")
         worker.result.connect(lambda _: (self._load_sources(), self._notify_runtime_changed()))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _load_policy(self) -> None:
@@ -651,7 +662,7 @@ class AiSourceConfigPage(QWidget):
         worker = ApiWorker(client.get, "/api/config/routing_policy")
         worker.result.connect(self._on_policy_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_policy_loaded(self, data: dict) -> None:
@@ -666,7 +677,7 @@ class AiSourceConfigPage(QWidget):
         worker = ApiWorker(client.put, "/api/config/routing_policy", json=payload)
         worker.result.connect(lambda _: (self.status_label.setText("路由策略已保存"), self._notify_runtime_changed()))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_selection_changed(self) -> None:
@@ -702,7 +713,7 @@ class AiSourceConfigPage(QWidget):
         worker = ApiWorker(client.post, f"/api/config/ai_sources/{source_id}/test")
         worker.result.connect(self._on_auto_test_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_auto_test_done(self, data: dict) -> None:

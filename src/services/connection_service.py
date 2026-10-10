@@ -60,6 +60,7 @@ class ConnectionService:
         characters = await self._load_characters(project_id)
         await release_write_lock(self.session)
 
+        self.logger.info(f"AI分析章节衔接 project_id={project_id} prev={prev_chapter_id} next={next_chapter_id}")
         result = await self.gateway.call_and_parse(
             module="writing",
             scene="connection",

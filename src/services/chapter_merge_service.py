@@ -12,10 +12,9 @@ from src.api.schemas.chapter_merge_schema import (
     ChapterMergeResponse,
     ChapterSplitResponse,
 )
-from src.db.models import Chapter, ChapterVersion, Project
+from src.db.models import Chapter
 from src.db.session import release_write_lock
 from src.services._chapter_guard import (
-    ChapterLockedError,
     assert_chapters_not_locked,
     create_auto_version_snapshot,
 )

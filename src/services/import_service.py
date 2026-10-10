@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
 
 from src.api.schemas.import_schema import ImportParseResponse
 from src.config.settings import get_config

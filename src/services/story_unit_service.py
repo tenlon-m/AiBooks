@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +12,6 @@ from src.api.schemas.story_unit_schema import (
     StoryUnitTreeDto,
     StoryUnitUpdateRequest,
 )
-from src.config.settings import get_config
 from src.db.models import (
     ChapterOutline,
     Character,

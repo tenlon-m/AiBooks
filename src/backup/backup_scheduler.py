@@ -1,7 +1,6 @@
 """自动备份调度器 - APScheduler定时+手动+退出前+风险操作前触发."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
 
 from src.utils.logger import get_logger

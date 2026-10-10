@@ -34,6 +34,19 @@ class ScriptPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _init_ui(self) -> None:
         layout = QVBoxLayout(self)
 
@@ -93,7 +106,7 @@ class ScriptPage(QWidget):
         worker = ApiWorker(client.get, f"/api/script/episodes/{self._project_id}")
         worker.result.connect(self._on_load_done)
         worker.error.connect(self._on_load_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_load_done(self, data: list | dict) -> None:
@@ -198,6 +211,8 @@ class ScriptPage(QWidget):
         target_dir = QFileDialog.getExistingDirectory(self, "选择导出目录")
         if not target_dir:
             return
+        self._export_btn.setEnabled(False)
+        self._progress_label.setText("正在导出剧本...")
         client = get_api_client()
         worker = ApiWorker(
             client.post,
@@ -210,13 +225,17 @@ class ScriptPage(QWidget):
         )
         worker.result.connect(self._on_export_done)
         worker.error.connect(self._on_export_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_export_done(self, data: dict) -> None:
+        self._export_btn.setEnabled(True)
+        self._progress_label.setText("导出完成")
         file_path = data.get("file_path", "")
         count = data.get("episode_count", 0)
         QMessageBox.information(self, "导出成功", f"已导出 {count} 集剧本至:\n{file_path}")
 
     def _on_export_error(self, msg: str) -> None:
+        self._export_btn.setEnabled(True)
+        self._progress_label.setText(f"导出失败: {msg}")
         QMessageBox.warning(self, "导出失败", msg)

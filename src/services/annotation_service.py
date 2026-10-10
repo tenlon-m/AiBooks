@@ -42,6 +42,7 @@ class AnnotationService:
         )
         self.session.add(annotation)
         await self.session.commit()
+        self.logger.info(f"创建批注 annotation_id={annotation.annotation_id} chapter_id={chapter_id} type={annotation_type}")
         return self._to_dto(annotation)
 
     async def list_by_chapter(
@@ -84,6 +85,7 @@ class AnnotationService:
             raise ValueError(f"批注不存在: {annotation_id}")
         await self.session.delete(annotation)
         await self.session.commit()
+        self.logger.info(f"删除批注 annotation_id={annotation_id}")
         return 1
 
     async def invalidate(self, annotation_id: str) -> AnnotationDto:

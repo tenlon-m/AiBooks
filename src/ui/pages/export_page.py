@@ -38,6 +38,19 @@ class ExportPage(QWidget):
         ctx.project_changed.connect(self._on_project_changed)
         self._load_templates()
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self.dir_input.setText(str(get_config().exports_dir))
         self.result_label.clear()
@@ -157,7 +170,7 @@ class ExportPage(QWidget):
         worker = ApiWorker(client.get, "/api/layout-templates")
         worker.result.connect(self._on_templates_loaded)
         worker.error.connect(self._on_templates_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_templates_loaded(self, data: dict) -> None:
@@ -209,7 +222,7 @@ class ExportPage(QWidget):
         worker = ApiWorker(client.post, f"/api/export{path_suffix}", json=payload)
         worker.result.connect(self._on_export_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_export_done(self, data: dict) -> None:

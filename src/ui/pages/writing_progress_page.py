@@ -1,11 +1,10 @@
 """撰写进度页 - 开始/暂停/续写 + 章节列表 + 进度显示 + AI对话侧栏 + 续写/扩写/缩写 + 场景大纲."""
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QSettings, QThread, Signal
+from PySide6.QtCore import Qt, QSettings, Signal
 from PySide6.QtGui import QAction, QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QCheckBox,
     QComboBox,
     QHBoxLayout,
     QHeaderView,
@@ -31,7 +30,6 @@ from src.ui.project_context import get_project_context
 from src.ui.shortcut_manager import ShortcutManager
 from src.ui.sse_worker import SsePostWorker, SseWritingWorker, WritingFillSseWorker, WritingRepairSseWorker
 from src.ui.widgets.batch_replace_dialog import BatchReplaceDialog
-from src.ui.widgets.garbled_config_dialog import GarbledConfigDialog
 from src.ui.theme.theme_qss_builder import apply_theme_variant
 from src.ui.widgets.scene_outline_panel import SceneOutlinePanel
 from src.ui.widgets.text_transform_dialog import TextTransformDialog
@@ -62,6 +60,19 @@ class WritingProgressPage(QWidget):
         self._init_shortcuts()
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
+
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
 
     def clear_page(self) -> None:
         if getattr(self, "_sse_worker", None) is not None:
@@ -184,7 +195,7 @@ class WritingProgressPage(QWidget):
         worker = ApiWorker(client.get, f"/api/writing/{pid}/chapters")
         worker.result.connect(self._on_writing_progress_check)
         worker.error.connect(self._on_progress_check_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_progress_check_error(self, msg: str) -> None:
@@ -456,7 +467,7 @@ class WritingProgressPage(QWidget):
         worker = ApiWorker(client.get, "/api/style-libraries")
         worker.result.connect(self._on_styles_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_styles_loaded(self, libraries: list) -> None:
@@ -495,7 +506,7 @@ class WritingProgressPage(QWidget):
         worker = ApiWorker(client.post, "/api/writing/start", json=payload)
         worker.result.connect(lambda d: self._on_start_done(d, pid, style_id, user_ideas, proofread_mode, proofread_sources))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         self.start_btn.setEnabled(False)
         self.status_label.setText("正在启动撰写...")
         worker.start()
@@ -515,6 +526,9 @@ class WritingProgressPage(QWidget):
         self.pause_btn.setEnabled(True)
         self.progress_bar.setValue(0)
 
+        if self._sse_worker is not None:
+            self._sse_worker.stop()
+            self._sse_worker = None
         self._sse_worker = SseWritingWorker(
             pid, style_id, user_ideas,
             proofread_mode=proofread_mode, proofread_sources=proofread_sources,
@@ -534,7 +548,7 @@ class WritingProgressPage(QWidget):
         worker = ApiWorker(client.post, f"/api/writing/pause?project_id={pid}")
         worker.result.connect(lambda d: (self.status_label.setText("已暂停"), self.log_edit.append("撰写已暂停"), self.pause_btn.setEnabled(False), self.resume_btn.setEnabled(True)))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _resume_writing(self) -> None:
@@ -549,7 +563,7 @@ class WritingProgressPage(QWidget):
         )
         worker.result.connect(lambda d: self._on_resume_done(d, pid, user_ideas))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_resume_done(self, data: dict, pid: str, user_ideas: str = "") -> None:
@@ -560,6 +574,9 @@ class WritingProgressPage(QWidget):
         style_id = self.style_combo.currentData()
         proofread_mode = self._proofread_mode_combo.currentData()
         proofread_sources = self._collect_proofread_sources()
+        if self._sse_worker is not None:
+            self._sse_worker.stop()
+            self._sse_worker = None
         self._sse_worker = SseWritingWorker(
             pid, style_id, user_ideas,
             proofread_mode=proofread_mode, proofread_sources=proofread_sources,
@@ -605,9 +622,12 @@ class WritingProgressPage(QWidget):
             self.start_btn.setEnabled(True)
             self.pause_btn.setEnabled(False)
             self.resume_btn.setEnabled(False)
+        else:
+            self.log_edit.append(f"未知状态：{status}，消息：{message}")
         self._load_chapters()
 
     def _on_sse_error(self, msg: str) -> None:
+        self._sse_worker = None
         self.status_label.setText(f"错误：{msg}")
         self._progress_label.setText(f"错误：{msg}")
         self.log_edit.append(f"错误：{msg}")
@@ -616,6 +636,7 @@ class WritingProgressPage(QWidget):
         self.resume_btn.setEnabled(False)
 
     def _on_sse_finished(self) -> None:
+        self._sse_worker = None
         self._load_chapters()
         self.chapter_completed.emit()
 
@@ -627,7 +648,7 @@ class WritingProgressPage(QWidget):
         worker = ApiWorker(client.get, f"/api/writing/{pid}/chapters")
         worker.result.connect(self._on_chapters_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_chapters_loaded(self, chapters: list) -> None:
@@ -738,7 +759,7 @@ class WritingProgressPage(QWidget):
         )
         worker.result.connect(self._on_save_writing_done)
         worker.error.connect(self._on_save_writing_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_save_writing_done(self, data: dict) -> None:
@@ -781,7 +802,7 @@ class WritingProgressPage(QWidget):
         )
         worker.result.connect(self._on_check_consistency_done)
         worker.error.connect(self._on_check_consistency_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_check_consistency_done(self, data: dict) -> None:
@@ -824,6 +845,9 @@ class WritingProgressPage(QWidget):
         self.start_btn.setEnabled(False)
         self._progress_label.setText("正在 AI 修复撰写内容，请稍候...")
         self.log_edit.append("AI 一键修复已启动，正在逐章修复撰写内容...")
+        if self._repair_sse_worker is not None:
+            self._repair_sse_worker.stop()
+            self._repair_sse_worker = None
         self._repair_sse_worker = WritingRepairSseWorker(pid, issues, repair_scope="all", garbled_config=self._get_garbled_config())
         self._repair_sse_worker.event.connect(self._on_repair_event)
         self._repair_sse_worker.finished_ok.connect(self._on_repair_finished)
@@ -872,6 +896,7 @@ class WritingProgressPage(QWidget):
         self.log_edit.append("AI 一键修复流程已结束。")
 
     def _on_repair_error(self, msg: str) -> None:
+        self._repair_sse_worker = None
         self.check_btn.setEnabled(True)
         self.start_btn.setEnabled(True)
         self._progress_label.setText("修复失败")
@@ -915,6 +940,9 @@ class WritingProgressPage(QWidget):
         self.check_btn.setEnabled(False)
         self._progress_label.setText("正在批量补写字数不足章节，请稍候...")
         self.log_edit.append("批量补写已启动，正在补写字数不足的章节...")
+        if self._fill_sse_worker is not None:
+            self._fill_sse_worker.stop()
+            self._fill_sse_worker = None
         self._fill_sse_worker = WritingFillSseWorker(pid, garbled_config=self._get_garbled_config())
         self._fill_sse_worker.event.connect(self._on_fill_event)
         self._fill_sse_worker.finished_ok.connect(self._on_fill_finished)
@@ -976,6 +1004,7 @@ class WritingProgressPage(QWidget):
         self.log_edit.append("批量补写流程已结束。")
 
     def _on_fill_error(self, msg: str) -> None:
+        self._fill_sse_worker = None
         self._fill_btn.setText("批量补写")
         apply_theme_variant(self._fill_btn, "deep_orange")
         self.start_btn.setEnabled(True)
@@ -1009,7 +1038,7 @@ class WritingProgressPage(QWidget):
         )
         worker.result.connect(self._on_preview_content_loaded)
         worker.error.connect(lambda _: self._content_preview.clear())
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_preview_content_loaded(self, data: dict) -> None:
@@ -1197,7 +1226,7 @@ class WritingProgressPage(QWidget):
             )
             worker.result.connect(self._on_preview_content_loaded)
             worker.error.connect(lambda _: self._content_preview.clear())
-            self._workers.append(worker)
+            self._add_worker(worker)
             worker.start()
 
     def _generate_summary(self) -> None:
@@ -1210,6 +1239,9 @@ class WritingProgressPage(QWidget):
         self._gen_summary_btn.setEnabled(False)
         self._progress_label.setText("单章摘要生成中...")
         self.log_edit.append(f"单章摘要生成已启动（章节ID: {self._current_chapter_id}）...")
+        if self._summary_sse_worker is not None:
+            self._summary_sse_worker.stop()
+            self._summary_sse_worker = None
         self._summary_sse_worker = SsePostWorker(
             "/api/summaries/generate/stream",
             payload={"chapter_id": self._current_chapter_id},
@@ -1229,12 +1261,14 @@ class WritingProgressPage(QWidget):
             self._update_chapter_summary_in_table(chapter_id, summary)
 
     def _on_summary_error(self, msg: str) -> None:
+        self._summary_sse_worker = None
         self._gen_summary_btn.setEnabled(True)
         self._progress_label.setText(f"摘要生成失败：{msg}")
         self.log_edit.append(f"摘要生成失败：{msg}")
         QMessageBox.critical(self, "摘要生成失败", msg)
 
     def _on_summary_finished(self) -> None:
+        self._summary_sse_worker = None
         self._gen_summary_btn.setEnabled(True)
         self._progress_label.setText("单章摘要生成完成")
         self.log_edit.append("单章摘要生成完成。")
@@ -1265,6 +1299,9 @@ class WritingProgressPage(QWidget):
         self._summary_pause_btn.setEnabled(True)
         self._progress_label.setText("批量摘要生成中...")
         self.log_edit.append(f"批量摘要生成已启动（共 {len(chapter_ids)} 章）...")
+        if self._batch_summary_sse_worker is not None:
+            self._batch_summary_sse_worker.stop()
+            self._batch_summary_sse_worker = None
         self._batch_summary_sse_worker = SsePostWorker(
             "/api/summaries/batch/stream",
             payload={"project_id": pid, "chapter_ids": chapter_ids},
@@ -1293,6 +1330,7 @@ class WritingProgressPage(QWidget):
             self._update_chapter_summary_in_table(chapter_id, summary)
 
     def _on_batch_summary_error(self, msg: str) -> None:
+        self._batch_summary_sse_worker = None
         self._batch_summary_btn.setEnabled(True)
         self._summary_pause_btn.setEnabled(False)
         self._progress_label.setText(f"批量摘要失败：{msg}")
@@ -1300,6 +1338,7 @@ class WritingProgressPage(QWidget):
         QMessageBox.critical(self, "批量摘要失败", msg)
 
     def _on_batch_summary_finished(self) -> None:
+        self._batch_summary_sse_worker = None
         self._batch_summary_btn.setEnabled(True)
         self._summary_pause_btn.setEnabled(False)
         text = self._progress_label.text()
@@ -1369,10 +1408,10 @@ class WritingProgressPage(QWidget):
 
     def _load_ai_sources(self) -> None:
         client = get_api_client()
-        worker = ApiWorker(client.get, "/api/ai-sources")
+        worker = ApiWorker(client.get, "/api/config/ai_sources")
         worker.result.connect(self._on_ai_sources_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_ai_sources_loaded(self, sources: list) -> None:

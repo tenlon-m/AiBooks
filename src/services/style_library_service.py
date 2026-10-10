@@ -5,7 +5,6 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,8 +46,8 @@ class StyleLibraryService:
         if sl.corpus_info:
             try:
                 corpus = [CorpusInfoDto(**c) for c in json.loads(sl.corpus_info)]
-            except Exception:
-                pass
+            except Exception as e:
+                self.logger.warning(f"风格库 corpus_info JSON 解析失败: {e}")
         return StyleLibraryDto(
             style_library_id=sl.style_library_id,
             name=sl.name,
@@ -180,13 +179,16 @@ class StyleLibraryService:
     async def list_all(self) -> list[StyleLibraryDto]:
         result = await self.session.execute(select(StyleLibrary))
         libraries = list(result.scalars().all())
-        dtos = []
-        for sl in libraries:
-            features = await self.session.execute(
-                select(StyleFeature).where(StyleFeature.style_library_id == sl.style_library_id)
-            )
-            dtos.append(self._to_dto(sl, list(features.scalars().all())))
-        return dtos
+        if not libraries:
+            return []
+        lib_ids = [sl.style_library_id for sl in libraries]
+        feat_result = await self.session.execute(
+            select(StyleFeature).where(StyleFeature.style_library_id.in_(lib_ids))
+        )
+        features_map: dict[str, list[StyleFeature]] = {}
+        for feat in feat_result.scalars().all():
+            features_map.setdefault(feat.style_library_id, []).append(feat)
+        return [self._to_dto(sl, features_map.get(sl.style_library_id, [])) for sl in libraries]
 
     async def get(self, style_library_id: str) -> StyleLibraryDto | None:
         sl = await self.session.get(StyleLibrary, style_library_id)

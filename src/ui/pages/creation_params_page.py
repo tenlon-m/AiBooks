@@ -1,9 +1,8 @@
 """创作参数设定页 - 创建项目/设定梗概与世界观/导入文件/项目切换联动."""
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QComboBox,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
@@ -38,6 +37,19 @@ class CreationParamsPage(QWidget):
 
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
+
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
 
     def _init_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -171,7 +183,7 @@ class CreationParamsPage(QWidget):
         worker = ApiWorker(client.get, "/api/creation")
         worker.result.connect(self._on_projects_reloaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_projects_reloaded(self, projects: list) -> None:
@@ -237,7 +249,7 @@ class CreationParamsPage(QWidget):
         worker = ApiWorker(self._fetch_synopsis_and_worldview, client, project_id)
         worker.result.connect(self._on_synopsis_worldview_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     @staticmethod
@@ -290,7 +302,7 @@ class CreationParamsPage(QWidget):
         worker = ApiWorker(client.post, "/api/creation/params", json=payload)
         worker.result.connect(self._on_project_created)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_project_created(self, data: dict) -> None:
@@ -314,7 +326,7 @@ class CreationParamsPage(QWidget):
         worker = ApiWorker(client.delete, f"/api/creation/{ctx.project_id}")
         worker.result.connect(self._on_project_deleted)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_project_deleted(self, _: object) -> None:
@@ -342,7 +354,7 @@ class CreationParamsPage(QWidget):
         else:
             worker.result.connect(lambda d: self.character_edit.setPlainText(d.get("content", "")))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _save_synopsis(self) -> None:
@@ -358,7 +370,7 @@ class CreationParamsPage(QWidget):
         worker = ApiWorker(client.put, f"/api/creation/{ctx.project_id}/synopsis", json={"content": content, "source": "manual_input"})
         worker.result.connect(self._on_synopsis_saved)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_synopsis_saved(self, _: object) -> None:
@@ -378,7 +390,7 @@ class CreationParamsPage(QWidget):
         worker = ApiWorker(client.put, f"/api/creation/{ctx.project_id}/worldview", json={"content": content, "source": "manual_input"})
         worker.result.connect(self._on_worldview_saved)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_worldview_saved(self, _: object) -> None:
@@ -402,7 +414,7 @@ class CreationParamsPage(QWidget):
         worker = ApiWorker(client.post, f"/api/naming/{ctx.project_id}/append-to-worldview")
         worker.result.connect(self._on_naming_worldview_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_naming_worldview_loaded(self, data: dict) -> None:
@@ -444,7 +456,7 @@ class CreationParamsPage(QWidget):
         worker = ApiWorker(client.post, f"/api/creation/{project_id}/polish", json=payload)
         worker.result.connect(lambda data, t="synopsis", pid=project_id: self._on_polish_result(data, t, pid))
         worker.error.connect(lambda msg, t="synopsis": self._on_polish_error(msg, t))
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _polish_worldview(self) -> None:
@@ -481,7 +493,7 @@ class CreationParamsPage(QWidget):
         worker = ApiWorker(client.post, f"/api/creation/{project_id}/polish", json=payload)
         worker.result.connect(lambda data, t="worldview", pid=project_id: self._on_polish_result(data, t, pid))
         worker.error.connect(lambda msg, t="worldview": self._on_polish_error(msg, t))
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_polish_result(self, data: dict, target: str, request_project_id: str) -> None:

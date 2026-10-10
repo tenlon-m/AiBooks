@@ -36,6 +36,19 @@ class BackupPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self.table.setRowCount(0)
         self.status_label.clear()
@@ -176,7 +189,7 @@ class BackupPage(QWidget):
         worker = ApiWorker(client.get, "/api/backup/policy")
         worker.result.connect(self._on_policy_loaded)
         worker.error.connect(self._on_policy_load_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_policy_loaded(self, data: dict) -> None:
@@ -212,7 +225,7 @@ class BackupPage(QWidget):
         worker = ApiWorker(client.put, "/api/backup/policy", json=payload)
         worker.result.connect(lambda _: self.status_label.setText("备份策略已保存"))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _trigger_backup(self) -> None:
@@ -220,7 +233,7 @@ class BackupPage(QWidget):
         worker = ApiWorker(client.post, "/api/backup/trigger", json={})
         worker.result.connect(lambda _: (self.status_label.setText("备份已触发"), self._load_backups()))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _load_backups(self) -> None:
@@ -228,7 +241,7 @@ class BackupPage(QWidget):
         worker = ApiWorker(client.get, "/api/backup/list")
         worker.result.connect(self._on_backups_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_backups_loaded(self, backups: list) -> None:
@@ -255,7 +268,7 @@ class BackupPage(QWidget):
         worker = ApiWorker(client.post, f"/api/backup/{backup_id}/restore")
         worker.result.connect(lambda _: QMessageBox.information(self, "成功", "备份已恢复"))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _delete_backup(self) -> None:
@@ -271,7 +284,7 @@ class BackupPage(QWidget):
         worker = ApiWorker(client.delete, f"/api/backup/{backup_id}")
         worker.result.connect(lambda _: self._load_backups())
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _export_project(self) -> None:
@@ -287,7 +300,7 @@ class BackupPage(QWidget):
         worker = ApiWorker(client.post, f"/api/projects/{ctx.project_id}/export", json=payload)
         worker.result.connect(lambda d: QMessageBox.information(self, "成功", f"项目已导出：{d}"))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _import_project(self) -> None:
@@ -299,7 +312,7 @@ class BackupPage(QWidget):
         worker = ApiWorker(client.post, "/api/projects/import", json=payload)
         worker.result.connect(self._on_import_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_import_done(self, data: dict) -> None:

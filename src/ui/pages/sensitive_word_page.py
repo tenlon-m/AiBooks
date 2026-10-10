@@ -33,6 +33,19 @@ class SensitiveWordPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self.word_table.setRowCount(0)
         self.result_table.setRowCount(0)
@@ -145,7 +158,7 @@ class SensitiveWordPage(QWidget):
         worker = ApiWorker(client.get, "/api/sensitive/words")
         worker.result.connect(self._on_words_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_words_loaded(self, words: list) -> None:
@@ -179,7 +192,7 @@ class SensitiveWordPage(QWidget):
         worker = ApiWorker(client.post, "/api/sensitive/words", json=payload)
         worker.result.connect(self._on_word_added)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_word_added(self, _data) -> None:
@@ -209,7 +222,7 @@ class SensitiveWordPage(QWidget):
         worker = ApiWorker(client.delete, "/api/sensitive/words", json={"word_ids": word_ids})
         worker.result.connect(lambda _: self._load_words())
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _save_words(self) -> None:
@@ -225,7 +238,7 @@ class SensitiveWordPage(QWidget):
         worker = ApiWorker(client.put, "/api/sensitive/words", json={"words": words})
         worker.result.connect(self._on_save_done)
         worker.error.connect(self._on_save_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_save_done(self, _data) -> None:
@@ -250,7 +263,7 @@ class SensitiveWordPage(QWidget):
         )
         worker.result.connect(self._on_scan_done)
         worker.error.connect(self._on_scan_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_scan_done(self, data: dict) -> None:

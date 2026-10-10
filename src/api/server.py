@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import threading
 from contextlib import asynccontextmanager, suppress
-from typing import Any
 
 from fastapi import FastAPI
 from src.utils.logger import get_logger

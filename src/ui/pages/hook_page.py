@@ -42,6 +42,19 @@ class HookPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _get_progress_timer(self) -> CharacterProgressTimer:
         if self._progress_timer is None:
             self._progress_timer = CharacterProgressTimer(self.window().statusBar())
@@ -85,7 +98,7 @@ class HookPage(QWidget):
         worker = ApiWorker(client.get, f"/api/hooks/{pid}/progress_chapter")
         worker.result.connect(self._on_progress_check_done)
         worker.error.connect(self._on_progress_check_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_progress_check_error(self, msg: str) -> None:
@@ -205,7 +218,7 @@ class HookPage(QWidget):
         worker = ApiWorker(self._fetch_all, client, pid)
         worker.result.connect(self._on_all_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     @staticmethod
@@ -380,13 +393,13 @@ class HookPage(QWidget):
             worker = ApiWorker(client.delete, f"/api/hooks/{pid}/cool_points", json={"cool_ids": cool_ids})
             worker.result.connect(lambda _: self._on_delete_done("爽点"))
             worker.error.connect(self._on_error)
-            self._workers.append(worker)
+            self._add_worker(worker)
             worker.start()
         if hook_ids:
             worker = ApiWorker(client.delete, f"/api/hooks/{pid}/hooks", json={"hook_ids": hook_ids})
             worker.result.connect(lambda _: self._on_delete_done("钩子"))
             worker.error.connect(self._on_error)
-            self._workers.append(worker)
+            self._add_worker(worker)
             worker.start()
 
     def _on_delete_done(self, kind: str) -> None:
@@ -431,7 +444,7 @@ class HookPage(QWidget):
         worker = ApiWorker(self._save_all_impl, client, pid, cool_points, hooks)
         worker.result.connect(self._on_save_done)
         worker.error.connect(self._on_save_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     @staticmethod
@@ -476,7 +489,7 @@ class HookPage(QWidget):
         worker = ApiWorker(client.post, f"/api/hooks/{pid}/check_consistency", timeout=300)
         worker.result.connect(self._on_check_consistency_done)
         worker.error.connect(self._on_check_consistency_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_check_consistency_done(self, data: dict) -> None:

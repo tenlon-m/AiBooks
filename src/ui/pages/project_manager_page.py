@@ -31,6 +31,19 @@ class ProjectManagerPage(QWidget):
         self._init_ui()
         self._load_summaries()
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self.table.setRowCount(0)
         self.status_label.clear()
@@ -96,7 +109,7 @@ class ProjectManagerPage(QWidget):
         worker = ApiWorker(client.get, "/api/creation/summaries")
         worker.result.connect(self._on_summaries_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_summaries_loaded(self, summaries: list) -> None:
@@ -168,7 +181,7 @@ class ProjectManagerPage(QWidget):
         worker = ApiWorker(client.post, "/api/backup/trigger", json={"project_id": pid})
         worker.result.connect(lambda _: (self.status_label.setText("备份成功"), QMessageBox.information(self, "成功", "项目备份成功")))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_export(self) -> None:
@@ -183,7 +196,7 @@ class ProjectManagerPage(QWidget):
         worker = ApiWorker(client.post, f"/api/projects/{pid}/export", json=payload)
         worker.result.connect(lambda d: QMessageBox.information(self, "成功", f"项目已导出：{d.get('file_path', '')}"))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_import(self) -> None:
@@ -195,7 +208,7 @@ class ProjectManagerPage(QWidget):
         worker = ApiWorker(client.post, "/api/projects/import", json={"source_path": file_path, "conflict_strategy": "rename"})
         worker.result.connect(self._on_import_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_import_done(self, data: dict) -> None:
@@ -215,7 +228,7 @@ class ProjectManagerPage(QWidget):
         worker = ApiWorker(client.delete, f"/api/creation/{pid}")
         worker.result.connect(lambda _: (self.status_label.setText("项目已删除"), self._load_summaries()))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_error(self, msg: str) -> None:

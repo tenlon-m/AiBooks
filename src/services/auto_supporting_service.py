@@ -17,7 +17,6 @@ from src.api.schemas.character_schema import (
     PersistDecision,
     SupportingDraft,
 )
-from src.config.settings import get_config
 from src.db.session import release_write_lock
 from src.services.character_service import CharacterService
 from src.services.supporting_builder import SupportingBuilder

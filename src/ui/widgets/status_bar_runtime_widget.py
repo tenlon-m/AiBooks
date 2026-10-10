@@ -26,6 +26,19 @@ class StatusBarRuntimeWidget(QWidget):
         self._source_hook = self._on_source_call
         register_source_hook(self._source_hook)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _init_ui(self) -> None:
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 0, 8, 0)
@@ -91,7 +104,7 @@ class StatusBarRuntimeWidget(QWidget):
         worker = ApiWorker(client.get, "/api/config/ai_source/active")
         worker.result.connect(self._on_ai_source_loaded)
         worker.error.connect(self._on_ai_source_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_ai_source_loaded(self, data: dict) -> None:

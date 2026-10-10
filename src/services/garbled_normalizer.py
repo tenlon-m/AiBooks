@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from typing import NamedTuple
 
+from loguru import logger
 from pydantic import BaseModel, Field
 
 
@@ -117,7 +118,8 @@ class GarbledNormalizer:
         try:
             result = self._normalize_impl(text, config)
             return result
-        except Exception:
+        except Exception as e:
+            logger.warning(f"乱码修复异常，返回原始文本: {e}")
             return text, empty_stat
 
     def detect_only(
@@ -138,7 +140,8 @@ class GarbledNormalizer:
 
         try:
             return self._detect_impl(text, config)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"乱码检测异常，返回空列表: {e}")
             return []
 
     # ── 内部实现 ──────────────────────────────────────────────

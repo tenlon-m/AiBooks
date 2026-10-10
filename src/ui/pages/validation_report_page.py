@@ -50,7 +50,7 @@ class ValidationReportPage(QWidget):
 
     def _add_worker(self, worker: ApiWorker) -> None:
         """注册 ApiWorker 并在完成后自动清理，避免内存泄漏."""
-        self._add_worker(worker)
+        self._workers.append(worker)
         worker.finished.connect(lambda: self._cleanup_worker(worker))
 
     def _cleanup_worker(self, worker: ApiWorker) -> None:

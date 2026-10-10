@@ -1,6 +1,11 @@
 """大纲管理服务 - AI生成/读取/保存/删除 + 结构校验 + 字数校验."""
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.services.garbled_normalizer import GarbledConfig
+
 import uuid
 from datetime import datetime, timezone
 from typing import AsyncGenerator
@@ -22,7 +27,6 @@ from src.api.schemas.outline_schema import (
     OutlineDto,
     OutlineDraft,
     OutlineGenerateRequest,
-    OutlineRepairRequest,
     OutlineSaveRequest,
     RepairStreamChunk,
     VolumeOutlineDto,
@@ -615,7 +619,6 @@ class OutlineService:
         self, project_id: str, parent_unit_id: str | None, level_type: str
     ) -> list:
         """雪花式分层大纲逐层生成，委托 StoryUnitService."""
-        from src.api.schemas.story_unit_schema import StoryUnitDto
         from src.services.story_unit_service import StoryUnitService
 
         service = StoryUnitService(self.session)

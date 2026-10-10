@@ -31,6 +31,19 @@ class HistoryRollbackPage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self.chapter_combo.clear()
         self.table.setRowCount(0)
@@ -105,7 +118,7 @@ class HistoryRollbackPage(QWidget):
         worker = ApiWorker(client.get, f"/api/writing/{pid}/chapters")
         worker.result.connect(self._on_chapters_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_chapters_loaded(self, chapters: list) -> None:
@@ -126,7 +139,7 @@ class HistoryRollbackPage(QWidget):
         worker = ApiWorker(client.get, f"/api/chapters/{self._current_chapter_id}/history")
         worker.result.connect(self._on_history_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     _MODIFY_TYPE_LABEL = {
@@ -197,7 +210,7 @@ class HistoryRollbackPage(QWidget):
         worker = ApiWorker(client.post, f"/api/chapters/{self._current_chapter_id}/rollback", json={"target_record_id": record_id})
         worker.result.connect(self._on_rollback_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_rollback_done(self, data: dict) -> None:

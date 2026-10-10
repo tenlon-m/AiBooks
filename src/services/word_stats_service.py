@@ -1,7 +1,7 @@
 """字数统计可视化服务 - 按章节/分卷/日趋势/目标完成度统计."""
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

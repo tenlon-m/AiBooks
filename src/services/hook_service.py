@@ -1,6 +1,11 @@
 """爽点钩子服务 - AI辅助设定、回收跟踪、基调校验."""
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.services.garbled_normalizer import GarbledConfig
+
 import uuid
 from typing import AsyncGenerator
 
@@ -19,9 +24,9 @@ from src.api.schemas.hook_schema import (
     HookRepairStreamChunk,
 )
 from src.config.settings import get_config
-from src.db.models import CoolPoint, Hook, NameFavorite, Project
+from src.db.models import CoolPoint, Hook, Project
 from src.db.session import release_write_lock
-from src.services.naming_service import NAME_TYPE_LABELS, NamingService
+from src.services.naming_service import NamingService
 from src.utils.logger import get_logger
 
 MAX_RECYCLE_DISTANCE_VOLUMES = 3

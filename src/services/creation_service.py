@@ -40,6 +40,7 @@ class CreationService:
         )
         self.session.add(project)
         await self.session.flush()
+        self.logger.info(f"创建项目 project_id={project.project_id} book_title={req.book_title}")
         return CreationParamsResponse(
             project_id=project.project_id,
             book_title=project.book_title,
@@ -82,7 +83,7 @@ class CreationService:
         wv_result = await self.session.execute(
             select(Worldview).where(Worldview.project_id.in_(project_ids))
         )
-        worldview_ids = {w.project_id for w in w_result.scalars().all()}
+        worldview_ids = {w.project_id for w in wv_result.scalars().all()}
 
         return [
             ProjectDto(
@@ -117,6 +118,7 @@ class CreationService:
             synopsis.source = source
             synopsis.updated_at = now
         await self.session.flush()
+        self.logger.info(f"保存梗概 project_id={project_id} source={source} len={len(content)}")
         return SynopsisResponse(project_id=project_id, content=content, source=source, updated_at=now)
 
     async def set_worldview(self, project_id: str, content: str, source: str) -> WorldviewResponse:
@@ -135,6 +137,7 @@ class CreationService:
             worldview.source = source
             worldview.updated_at = now
         await self.session.flush()
+        self.logger.info(f"保存世界观 project_id={project_id} source={source} len={len(content)}")
         return WorldviewResponse(project_id=project_id, content=content, source=source, updated_at=now)
 
     async def get_synopsis(self, project_id: str) -> SynopsisResponse | None:
@@ -167,6 +170,7 @@ class CreationService:
             raise ValueError("项目正在撰写中，无法删除")
         await self.session.delete(project)
         await self.session.flush()
+        self.logger.info(f"删除项目 project_id={project_id}")
         return True
 
     async def list_project_summaries(self) -> list[ProjectSummaryDto]:
@@ -259,6 +263,7 @@ class CreationService:
                 worldview.updated_at = now
 
         await self.session.flush()
+        self.logger.info(f"保存工程 project_id={project_id} is_new={is_new} book_title={req.book_title}")
         synopsis_rec = await self.session.get(Synopsis, project_id)
         worldview_rec = await self.session.get(Worldview, project_id)
         return ProjectSaveResponse(

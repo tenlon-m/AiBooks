@@ -1,7 +1,11 @@
 """批量撰写服务 - 核心业务，状态机+断点续写+SSE进度."""
 from __future__ import annotations
 
-import asyncio
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.services.garbled_normalizer import GarbledConfig
+
 import uuid
 from datetime import datetime, timezone
 from typing import Any, AsyncGenerator
@@ -35,7 +39,7 @@ from src.db.models import (
     VolumeOutline,
     Worldview,
 )
-from src.db.session import get_session, release_write_lock
+from src.db.session import release_write_lock
 from src.services.item_service import ItemService
 from src.services.naming_service import NAME_TYPE_LABELS
 from src.utils.creation_logger import log_writing_step
@@ -660,10 +664,8 @@ class WritingService:
         chapters: list,
     ) -> int:
         """单事务内批量更新已撰写章节内容，中途任一写入失败回滚事务，返回保存数量."""
-        from src.api.schemas.writing_schema import ChapterSaveItem
         from datetime import datetime, timezone
         from src.services._chapter_guard import (
-            ChapterLockedError,
             assert_chapters_not_locked,
             create_auto_version_snapshot,
         )

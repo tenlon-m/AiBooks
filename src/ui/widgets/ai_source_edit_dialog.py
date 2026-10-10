@@ -56,6 +56,19 @@ class AiSourceEditDialog(QDialog):
         self._init_ui()
         self._fill_fields()
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _init_ui(self) -> None:
         layout = QVBoxLayout(self)
 
@@ -217,7 +230,7 @@ class AiSourceEditDialog(QDialog):
         worker = ApiWorker(client.get, "/api/config/ollama/models", params={"endpoint": endpoint})
         worker.result.connect(self._on_ollama_models_loaded)
         worker.error.connect(self._on_ollama_models_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_ollama_models_loaded(self, data: dict) -> None:
@@ -303,7 +316,7 @@ class AiSourceEditDialog(QDialog):
         worker = ApiWorker(client.get, f"/api/config/ai_sources/{self._source_id}/key")
         worker.result.connect(self._on_saved_key_loaded)
         worker.error.connect(self._on_saved_key_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_saved_key_loaded(self, data: dict) -> None:
@@ -332,7 +345,7 @@ class AiSourceEditDialog(QDialog):
         worker = ApiWorker(client.put, f"/api/config/ai_sources/{self._source_id}", json=payload)
         worker.result.connect(self._on_saved)
         worker.error.connect(self._on_save_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_saved(self, data: dict) -> None:

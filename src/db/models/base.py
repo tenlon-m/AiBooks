@@ -17,7 +17,6 @@ from sqlalchemy import (
     LargeBinary,
     Index,
     UniqueConstraint,
-    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -40,7 +39,7 @@ class Project(Base):
     volume_count: Mapped[int] = mapped_column(Integer, nullable=False)
     chapters_per_volume: Mapped[int] = mapped_column(Integer, nullable=False)
     words_per_chapter: Mapped[int] = mapped_column(Integer, nullable=False)
-    style_library_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("style_libraries.style_library_id"), nullable=True)
+    style_library_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("style_libraries.style_library_id"), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
@@ -398,7 +397,7 @@ class ChapterOutline(Base):
     synopsis_points: Mapped[str] = mapped_column(Text, nullable=False)
     characters_appearing: Mapped[str | None] = mapped_column(Text, nullable=True)
     gen_source: Mapped[str] = mapped_column(String(20), nullable=False, default="AI生成")
-    story_unit_id: Mapped[str | None] = mapped_column(String(36), nullable=True, default=None)
+    story_unit_id: Mapped[str | None] = mapped_column(String(36), nullable=True, default=None, index=True)
 
     volume_outline: Mapped["VolumeOutline"] = relationship("VolumeOutline", back_populates="chapters")
 
@@ -499,7 +498,7 @@ class CharacterRelationship(Base):
     relationship_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False, index=True)
     source_character_id: Mapped[str] = mapped_column(String(36), ForeignKey("characters.character_id", ondelete="CASCADE"), nullable=False)
-    target_character_id: Mapped[str] = mapped_column(String(36), ForeignKey("characters.character_id", ondelete="CASCADE"), nullable=False)
+    target_character_id: Mapped[str] = mapped_column(String(36), ForeignKey("characters.character_id", ondelete="CASCADE"), nullable=False, index=True)
     relation_type: Mapped[str] = mapped_column(String(30), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
@@ -642,7 +641,7 @@ class AntiAiRewriteRecord(Base):
 
     rewrite_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     chapter_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapters.chapter_id", ondelete="CASCADE"), nullable=False, index=True)
-    original_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False)
+    original_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False, index=True)
     rewritten_content: Mapped[str] = mapped_column(Text, nullable=False)
     strategy: Mapped[str] = mapped_column(String(50), nullable=False)
     adopt_status: Mapped[str] = mapped_column(String(10), nullable=False, default="待采纳")
@@ -694,8 +693,8 @@ class IterationRecord(Base):
     target_id: Mapped[str] = mapped_column(String(36), nullable=False)
     round_no: Mapped[int] = mapped_column(Integer, nullable=False)
     total_rounds: Mapped[int] = mapped_column(Integer, nullable=False)
-    input_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False)
-    output_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False)
+    input_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False, index=True)
+    output_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False, index=True)
     iteration_status: Mapped[str] = mapped_column(String(10), nullable=False, default="进行中")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
@@ -710,7 +709,7 @@ class Script(Base):
     episode_no: Mapped[int] = mapped_column(Integer, nullable=False)
     scene_description: Mapped[str] = mapped_column(Text, nullable=False)
     character_dialogue: Mapped[str] = mapped_column(Text, nullable=False)
-    outline_unit_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("story_units.story_unit_id"), nullable=True)
+    outline_unit_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("story_units.story_unit_id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
 
@@ -722,10 +721,10 @@ class ProofreadDraft(Base):
     draft_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     chapter_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapters.chapter_id", ondelete="CASCADE"), nullable=False, index=True)
     draft_stage: Mapped[str] = mapped_column(String(10), nullable=False)
-    ai_source_id: Mapped[str] = mapped_column(String(36), ForeignKey("ai_sources.source_id"), nullable=False)
+    ai_source_id: Mapped[str] = mapped_column(String(36), ForeignKey("ai_sources.source_id"), nullable=False, index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False)
+    version_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapter_versions.version_id"), nullable=False, index=True)
     adopt_status: Mapped[str] = mapped_column(String(10), nullable=False, default="待采纳")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 

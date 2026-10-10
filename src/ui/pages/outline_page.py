@@ -77,6 +77,19 @@ class OutlinePage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def _get_progress_timer(self) -> CharacterProgressTimer:
         if self._progress_timer is None:
             self._progress_timer = CharacterProgressTimer(self.window().statusBar())
@@ -228,7 +241,7 @@ class OutlinePage(QWidget):
         worker = ApiWorker(client.get, f"/api/outlines/{self._project_id}")
         worker.result.connect(self._on_load_done)
         worker.error.connect(self._on_load_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_load_done(self, data: dict | None) -> None:
@@ -296,7 +309,7 @@ class OutlinePage(QWidget):
         worker = ApiWorker(client.get, f"/api/story-units/tree/{self._project_id}")
         worker.result.connect(self._on_story_unit_tree_loaded)
         worker.error.connect(self._on_story_unit_tree_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_story_unit_tree_loaded(self, data: dict | None) -> None:
@@ -363,7 +376,7 @@ class OutlinePage(QWidget):
         )
         worker.result.connect(self._on_volume_layer_done)
         worker.error.connect(self._on_layer_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
         self._status_label.setText("正在生成分卷层...")
 
@@ -403,7 +416,7 @@ class OutlinePage(QWidget):
         )
         worker.result.connect(self._on_child_layer_done)
         worker.error.connect(self._on_layer_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
         self._status_label.setText(f"正在生成{child_level}层...")
 
@@ -467,7 +480,7 @@ class OutlinePage(QWidget):
         )
         worker.result.connect(self._on_reorder_done)
         worker.error.connect(self._on_reorder_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_reorder_done(self, data: dict) -> None:
@@ -507,7 +520,7 @@ class OutlinePage(QWidget):
         worker = ApiWorker(client.get, f"/api/outlines/{self._project_id}")
         worker.result.connect(lambda data: self._check_existing_and_generate(data))
         worker.error.connect(lambda msg: self._do_generate())
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _check_existing_and_generate(self, existing: dict | None) -> None:
@@ -535,7 +548,7 @@ class OutlinePage(QWidget):
         )
         worker.result.connect(self._on_generate_done)
         worker.error.connect(self._on_generate_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_generate_done(self, data: dict) -> None:
@@ -573,7 +586,7 @@ class OutlinePage(QWidget):
         worker = ApiWorker(client.get, f"/api/outlines/{self._project_id}")
         worker.result.connect(self._check_existing_and_batch)
         worker.error.connect(lambda _: self._start_batch(reset=False))
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _check_existing_and_batch(self, existing: dict | None) -> None:
@@ -742,7 +755,7 @@ class OutlinePage(QWidget):
         )
         worker.result.connect(self._on_save_done)
         worker.error.connect(self._on_save_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_save_done(self, data: dict) -> None:
@@ -831,7 +844,7 @@ class OutlinePage(QWidget):
         client = get_api_client()
         worker = ApiWorker(client.get, f"/api/scene-outline/{chapter_id}/scenes")
         worker.result.connect(lambda scenes: ch_item.setText(4, str(len(scenes))))
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _delete_outline(self) -> None:
@@ -848,7 +861,7 @@ class OutlinePage(QWidget):
         worker = ApiWorker(client.delete, f"/api/outlines/{self._project_id}")
         worker.result.connect(lambda _: self._outline_tree.clear())
         worker.error.connect(lambda msg: QMessageBox.critical(self, "删除失败", msg))
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def clear_page(self) -> None:
@@ -1005,7 +1018,7 @@ class OutlinePage(QWidget):
         )
         worker.result.connect(self._on_fill_appearing_done)
         worker.error.connect(self._on_fill_appearing_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_fill_appearing_done(self, data: dict) -> None:

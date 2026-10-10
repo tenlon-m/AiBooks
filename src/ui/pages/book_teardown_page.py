@@ -26,7 +26,21 @@ class BookTeardownPage(QWidget):
         super().__init__(parent)
         self._workers: list[ApiWorker] = []
         self._teardown_id: str | None = None
+        self._active_btn: QPushButton | None = None
         self._init_ui()
+
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
 
     def _init_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -100,14 +114,18 @@ class BookTeardownPage(QWidget):
             return
         self.file_label.setText(path)
         self.progress.setValue(10)
+        self.upload_btn.setEnabled(False)
+        self._active_btn = self.upload_btn
         client = get_api_client()
         worker = ApiWorker(client.post, "/api/book-teardown/upload", json={"file_path": path})
         worker.result.connect(self._on_upload_done)
         worker.error.connect(self._on_error)
         worker.start()
-        self._workers.append(worker)
+        self._add_worker(worker)
 
     def _on_upload_done(self, result: dict) -> None:
+        self._active_btn = None
+        self.upload_btn.setEnabled(True)
         self._teardown_id = result.get("teardown_id")
         self.progress.setValue(30)
         self.teardown_btn.setEnabled(True)
@@ -117,6 +135,8 @@ class BookTeardownPage(QWidget):
         if not self._teardown_id:
             return
         self.progress.setValue(40)
+        self.teardown_btn.setEnabled(False)
+        self._active_btn = self.teardown_btn
         client = get_api_client()
         worker = ApiWorker(
             client.post, f"/api/book-teardown/{self._teardown_id}/teardown-outline"
@@ -124,13 +144,16 @@ class BookTeardownPage(QWidget):
         worker.result.connect(self._on_teardown_done)
         worker.error.connect(self._on_error)
         worker.start()
-        self._workers.append(worker)
+        self._add_worker(worker)
 
     def _on_teardown_done(self, result: dict) -> None:
+        self._active_btn = None
+        self.teardown_btn.setEnabled(True)
         outline = result.get("multi_level_outline", "")
         self._populate_outline_tree(outline)
         self.progress.setValue(60)
         self.extract_btn.setEnabled(True)
+        QMessageBox.information(self, "成功", "大纲拆解完成，可以提取要素")
 
     def _populate_outline_tree(self, outline: str) -> None:
         self.outline_tree.clear()
@@ -156,6 +179,8 @@ class BookTeardownPage(QWidget):
         if not self._teardown_id:
             return
         self.progress.setValue(70)
+        self.extract_btn.setEnabled(False)
+        self._active_btn = self.extract_btn
         client = get_api_client()
         worker = ApiWorker(
             client.post, f"/api/book-teardown/{self._teardown_id}/extract-elements"
@@ -163,9 +188,11 @@ class BookTeardownPage(QWidget):
         worker.result.connect(self._on_extract_done)
         worker.error.connect(self._on_error)
         worker.start()
-        self._workers.append(worker)
+        self._add_worker(worker)
 
     def _on_extract_done(self, result: dict) -> None:
+        self._active_btn = None
+        self.extract_btn.setEnabled(True)
         self.characters_tab.setPlainText(result.get("characters") or "")
         self.time_places_tab.setPlainText(result.get("time_places") or "")
         self.worldview_tab.setPlainText(result.get("worldview") or "")
@@ -173,6 +200,7 @@ class BookTeardownPage(QWidget):
         self.events_tab.setPlainText(result.get("events") or "")
         self.progress.setValue(90)
         self.create_btn.setEnabled(True)
+        QMessageBox.information(self, "成功", "要素提取完成，可以创建二创工程")
 
     def _on_create_clicked(self) -> None:
         if not self._teardown_id:
@@ -181,6 +209,8 @@ class BookTeardownPage(QWidget):
         if not book_title:
             QMessageBox.warning(self, "提示", "请输入二创书名")
             return
+        self.create_btn.setEnabled(False)
+        self._active_btn = self.create_btn
         client = get_api_client()
         worker = ApiWorker(
             client.post,
@@ -190,12 +220,17 @@ class BookTeardownPage(QWidget):
         worker.result.connect(self._on_create_done)
         worker.error.connect(self._on_error)
         worker.start()
-        self._workers.append(worker)
+        self._add_worker(worker)
 
     def _on_create_done(self, result: dict) -> None:
+        self._active_btn = None
+        self.create_btn.setEnabled(True)
         self.progress.setValue(100)
         QMessageBox.information(self, "成功", f"已创建工程：{result.get('book_title', '')}")
 
     def _on_error(self, msg: str) -> None:
         self.progress.setValue(0)
+        if self._active_btn is not None:
+            self._active_btn.setEnabled(True)
+            self._active_btn = None
         QMessageBox.critical(self, "错误", msg)

@@ -1,10 +1,8 @@
 """章节摘要自动生成服务 - SSE逐章生成，支持批量可暂停续写，UPSERT至chapter_summaries."""
 from __future__ import annotations
 
-import uuid
 from typing import AsyncGenerator
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.ai.gateway import get_gateway
@@ -64,6 +62,7 @@ class ChapterSummaryService:
         )
         await release_write_lock(self.session)
         try:
+            self.logger.info(f"AI生成章节摘要 chapter_id={chapter_id} chapter_no={chapter.chapter_no}")
             result = await self.gateway.call_and_parse(
                 module="summary",
                 scene="chapter",

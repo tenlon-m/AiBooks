@@ -21,7 +21,6 @@ from src.ui.theme.contrast_checker import ContrastChecker
 from src.ui.theme.models import ThemeId
 from src.ui.theme.presets import PRESET_THEMES, PRESET_MAP
 from src.ui.theme.theme_manager import ThemeManager
-from src.ui.theme.theme_qss_builder import ThemeQssBuilder
 from src.ui.theme.theme_settings_store import ThemeSettingsStore
 
 

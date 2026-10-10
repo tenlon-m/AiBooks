@@ -32,6 +32,19 @@ class TimelinePage(QWidget):
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
 
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
+
     def clear_page(self) -> None:
         self.timeline_widget.clear_nodes()
         self.status_label.clear()
@@ -118,7 +131,7 @@ class TimelinePage(QWidget):
         worker = ApiWorker(client.get, f"/api/timeline/{pid}")
         worker.result.connect(self._on_nodes_loaded)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_nodes_loaded(self, data: dict | list) -> None:
@@ -150,7 +163,7 @@ class TimelinePage(QWidget):
         )
         worker.result.connect(self._on_reorder_done)
         worker.error.connect(self._on_reorder_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_reorder_done(self, data: dict) -> None:
@@ -189,7 +202,7 @@ class TimelinePage(QWidget):
             worker = ApiWorker(client.post, "/api/timeline", json=payload)
             worker.result.connect(lambda _: self._on_node_saved("新增"))
             worker.error.connect(self._on_error)
-            self._workers.append(worker)
+            self._add_worker(worker)
             worker.start()
 
     def _update_node(self, node_id: str, data: dict) -> None:
@@ -202,7 +215,7 @@ class TimelinePage(QWidget):
         )
         worker.result.connect(lambda _: self._on_node_saved("更新"))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _delete_node(self) -> None:
@@ -226,7 +239,7 @@ class TimelinePage(QWidget):
         worker = ApiWorker(client.delete, f"/api/timeline/{pid}/{node_id}")
         worker.result.connect(lambda _: self._on_node_saved("删除"))
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _select_node_to_delete(self, order: list[str]) -> tuple[str, bool]:
@@ -263,7 +276,7 @@ class TimelinePage(QWidget):
         )
         worker.result.connect(self._on_save_done)
         worker.error.connect(self._on_save_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_save_done(self, data: dict) -> None:
@@ -289,7 +302,7 @@ class TimelinePage(QWidget):
         worker = ApiWorker(client.get, f"/api/timeline/{pid}/conflicts")
         worker.result.connect(self._on_check_done)
         worker.error.connect(self._on_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_check_done(self, data: dict) -> None:

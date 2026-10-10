@@ -15,9 +15,8 @@ from src.api.schemas.batch_replace_schema import (
     MatchPreviewItem,
 )
 from src.config.settings import get_config
-from src.db.models import Chapter, ChapterVersion, Project
+from src.db.models import Chapter, Project
 from src.services._chapter_guard import (
-    ChapterLockedError,
     assert_chapters_not_locked,
     create_auto_version_snapshot,
 )

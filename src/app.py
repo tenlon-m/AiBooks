@@ -41,7 +41,6 @@ class PresetModel(TypedDict):
 
 def init_app() -> None:
     """初始化应用基础设施."""
-    from src.config.app_config import AppConfig
     from src.config.crypto import init_crypto
     from src.config.settings import get_config
     from src.utils.logger import init_logger
@@ -138,7 +137,6 @@ def init_app() -> None:
 
 def main() -> None:
     """主入口."""
-    import io
     import os
 
     # PyInstaller 打包后 console=False 时 sys.stdout/sys.stderr 均为 None，

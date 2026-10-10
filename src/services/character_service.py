@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -117,6 +116,7 @@ class CharacterService:
 
     async def ai_extract_main(self, project_id: str, synopsis: str, worldview: str) -> list[CharacterDto]:
         """AI 从梗概/世界观提取主角."""
+        self.logger.info(f"AI提取主角开始 project_id={project_id}")
         result = await self.gateway.call_and_parse(
             module="character",
             scene="extract-main",
@@ -130,6 +130,7 @@ class CharacterService:
 
     async def ai_extract_supporting(self, project_id: str, synopsis: str, worldview: str, existing: list[CharacterDto]) -> list[CharacterDto]:
         """AI 从梗概/世界观提取配角."""
+        self.logger.info(f"AI提取配角开始 project_id={project_id} existing_count={len(existing)}")
         result = await self.gateway.call_and_parse(
             module="character",
             scene="extract-supporting",
@@ -147,6 +148,7 @@ class CharacterService:
 
     async def ai_generate_supporting(self, project_id: str, synopsis: str, worldview: str, existing: list[CharacterDto], count: int = 3) -> list[CharacterDto]:
         """AI 生成配角."""
+        self.logger.info(f"AI生成配角开始 project_id={project_id} count={count}")
         result = await self.gateway.call_and_parse(
             module="character",
             scene="generate-supporting",
@@ -294,25 +296,30 @@ class CharacterService:
 
     async def batch_delete(self, character_ids: list[str]) -> int:
         """批量删除人物，单事务原子性，返回实际删除数量."""
-        deleted_count = 0
-        for char_id in character_ids:
-            ch = await self.session.get(Character, char_id)
-            if ch:
-                await self.session.delete(ch)
-                deleted_count += 1
+        if not character_ids:
+            return 0
+        result = await self.session.execute(
+            select(Character).where(Character.character_id.in_(character_ids))
+        )
+        chars = list(result.scalars().all())
+        for ch in chars:
+            await self.session.delete(ch)
         await self.session.commit()
-        return deleted_count
+        return len(chars)
 
     async def batch_confirm(self, character_ids: list[str]) -> int:
         """批量确认人物，返回实际确认数量."""
+        if not character_ids:
+            return 0
+        result = await self.session.execute(
+            select(Character).where(Character.character_id.in_(character_ids))
+        )
+        chars = list(result.scalars().all())
         confirmed_count = 0
-        for char_id in character_ids:
-            ch = await self.session.get(Character, char_id)
-            if ch and not ch.confirmed:
+        for ch in chars:
+            if not ch.confirmed:
                 ch.confirmed = True
-                confirmed_count += 1
-            elif ch and ch.confirmed:
-                confirmed_count += 1
+            confirmed_count += 1
         await self.session.commit()
         return confirmed_count
     async def list_by_scope(

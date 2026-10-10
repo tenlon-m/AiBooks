@@ -63,6 +63,7 @@ class RelationshipGraphService:
         )
         self.session.add(rel)
         await self.session.commit()
+        self.logger.info(f"创建角色关系 relationship_id={rel.relationship_id} project_id={project_id} type={req.relation_type}")
         return self._to_dto(rel)
 
     async def get_graph(self, project_id: str) -> RelationshipGraphDto:
@@ -133,6 +134,7 @@ class RelationshipGraphService:
                 await self.session.delete(entity)
 
         await self.session.commit()
+        self.logger.info(f"全量保存角色关系 project_id={project_id} kept_count={len(kept_ids)}")
         return {"saved_count": len(kept_ids)}
 
     async def update(
@@ -146,6 +148,7 @@ class RelationshipGraphService:
         if req.description is not None:
             rel.description = req.description
         await self.session.commit()
+        self.logger.info(f"更新角色关系 relationship_id={relationship_id} project_id={project_id}")
         return self._to_dto(rel)
 
     async def delete(self, project_id: str, relationship_id: str) -> int:
@@ -154,6 +157,7 @@ class RelationshipGraphService:
             raise ValueError("角色关系不存在")
         await self.session.delete(rel)
         await self.session.commit()
+        self.logger.info(f"删除角色关系 relationship_id={relationship_id} project_id={project_id}")
         return 1
 
     async def auto_extract(self, project_id: str) -> AutoExtractResult:
@@ -189,4 +193,5 @@ class RelationshipGraphService:
                     await self.session.flush()
                     extracted.append(self._to_dto(entity))
         await self.session.commit()
+        self.logger.info(f"自动提取角色关系落库 project_id={project_id} extracted={len(extracted)} skipped={skipped}")
         return AutoExtractResult(extracted=extracted, skipped=skipped)

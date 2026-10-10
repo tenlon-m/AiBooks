@@ -17,7 +17,6 @@ from src.api.schemas.chapter_version_schema import (
 from src.config.settings import get_config
 from src.db.models import Chapter, ChapterVersion
 from src.services._chapter_guard import (
-    ChapterLockedError,
     assert_not_locked,
     create_auto_version_snapshot,
 )

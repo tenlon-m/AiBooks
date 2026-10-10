@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.ai.template_loader import PromptRenderError, get_template_loader
+from src.ai.template_loader import get_template_loader
 
 
 class PromptBuilder:

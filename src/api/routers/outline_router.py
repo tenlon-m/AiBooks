@@ -17,7 +17,6 @@ from src.api.schemas.outline_schema import (
     OutlineGenerateRequest,
     OutlineRepairRequest,
     OutlineSaveRequest,
-    RepairStreamChunk,
 )
 from src.db.session import get_session, session_scope
 from src.services.outline_service import OutlineService

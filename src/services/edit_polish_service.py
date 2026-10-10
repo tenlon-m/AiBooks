@@ -4,6 +4,11 @@
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.services.garbled_normalizer import GarbledConfig
+
 import uuid
 from datetime import datetime, timezone
 
@@ -24,7 +29,6 @@ from src.db.models import (
     Character,
     Item,
     ModifyRecord,
-    Project,
     Synopsis,
     Worldview,
 )

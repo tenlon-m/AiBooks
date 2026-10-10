@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QHBoxLayout,
     QLabel,
@@ -39,6 +38,19 @@ class EmotionCurvePage(QWidget):
         self._init_ui()
         ctx = get_project_context()
         ctx.project_changed.connect(self._on_project_changed)
+
+    def _add_worker(self, worker) -> None:
+        """注册 ApiWorker 并在完成后自动清理."""
+        self._workers.append(worker)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+
+    def _cleanup_worker(self, worker) -> None:
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            pass
+        worker.deleteLater()
+
 
     def clear_page(self) -> None:
         if self._sse_worker is not None:
@@ -157,7 +169,7 @@ class EmotionCurvePage(QWidget):
         worker = ApiWorker(client.get, f"/api/emotion/{pid}/curve")
         worker.result.connect(self._on_curve_loaded)
         worker.error.connect(self._on_curve_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_curve_error(self, msg: str) -> None:
@@ -205,7 +217,7 @@ class EmotionCurvePage(QWidget):
         worker = ApiWorker(client.get, f"/api/writing/{pid}/chapters")
         worker.result.connect(self._on_chapters_loaded)
         worker.error.connect(self._on_sse_error)
-        self._workers.append(worker)
+        self._add_worker(worker)
         worker.start()
 
     def _on_chapters_loaded(self, data: list | dict) -> None:

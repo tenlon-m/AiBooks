@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.backup.archive_format import ArchiveFormat
 from src.db.models import (
     AiCallLog,
+    AntiAiRewriteRecord,
+    BatchOperationRecord,
     Chapter,
     ChapterAnnotation,
     ChapterOutline,
@@ -19,12 +21,16 @@ from src.db.models import (
     CoolPoint,
     EmotionCurvePoint,
     Hook,
+    IterationRecord,
     Item,
     ModifyRecord,
     NameFavorite,
     Outline,
+    ProofreadDraft,
     Project,
+    Script,
     SensitiveWord,
+    StoryUnit,
     StyleFeature,
     StyleLibrary,
     Synopsis,
@@ -150,6 +156,37 @@ class ProjectExportService:
             select(NameFavorite).where(NameFavorite.project_id == project_id)
         )
         data["name_favorites"] = [self._serialize(r) for r in name_favorites.scalars().all()]
+
+        story_units = await self.session.execute(
+            select(StoryUnit).where(StoryUnit.project_id == project_id)
+        )
+        data["story_units"] = [self._serialize(r) for r in story_units.scalars().all()]
+
+        scripts = await self.session.execute(
+            select(Script).where(Script.project_id == project_id)
+        )
+        data["scripts"] = [self._serialize(r) for r in scripts.scalars().all()]
+
+        batch_ops = await self.session.execute(
+            select(BatchOperationRecord).where(BatchOperationRecord.project_id == project_id)
+        )
+        data["batch_operation_records"] = [self._serialize(r) for r in batch_ops.scalars().all()]
+
+        iteration_records = await self.session.execute(
+            select(IterationRecord).where(IterationRecord.project_id == project_id)
+        )
+        data["iteration_records"] = [self._serialize(r) for r in iteration_records.scalars().all()]
+
+
+        anti_ai_rewrites = await self.session.execute(
+            select(AntiAiRewriteRecord).where(AntiAiRewriteRecord.chapter_id.in_(chapter_ids_subq))
+        )
+        data["anti_ai_rewrite_records"] = [self._serialize(r) for r in anti_ai_rewrites.scalars().all()]
+
+        proofread_drafts = await self.session.execute(
+            select(ProofreadDraft).where(ProofreadDraft.chapter_id.in_(chapter_ids_subq))
+        )
+        data["proofread_drafts"] = [self._serialize(r) for r in proofread_drafts.scalars().all()]
 
         if include_style_libraries and project.style_library_id:
             sl = await self.session.get(StyleLibrary, project.style_library_id)
